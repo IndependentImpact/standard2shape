@@ -41,6 +41,14 @@ The canonical document structure is an ordered **document tree** containing two 
 
 Canonical shapes remain graph entities rather than being copied into the tree. The same shape may therefore be referenced by multiple document bundles or by multiple placements in one bundle without duplicating its SHACL definition. Placement owns document context and order; the referenced shape owns semantic constraints.
 
+## Confirmed guidance boundary
+
+**Canonical guidance** is part of the standard. Document sections and canonical node or property shapes may carry authoritative instructions, explanations, applicability guidance, and definitions. Downstream UIs use that content as the default source for help text and extended information, reducing the amount of presentation copy each UI developer must create.
+
+How guidance is revealed—always visible, hover, click, disclosure, or another interaction—is a presentation concern owned by `shape2form`. A UI developer may also add **supplemental guidance**, such as examples or task-specific clarification, for a particular interface.
+
+The precedence and composition rules between canonical and supplemental guidance remain to be resolved; canonical guidance must not be silently lost.
+
 ## Product boundary
 
 `standard2shape` owns canonical data requirements:
@@ -86,7 +94,7 @@ These have not yet been confirmed:
 
 ## Open requirements
 
-- What canonical content, if any, belongs on a document section beyond identity, title, hierarchy, and order?
+- How are canonical guidance and supplemental UI guidance composed without hiding the standard's authoritative text?
 - What owns a shape when the bundle spans multiple files?
 - Which SHACL Core features belong in the first usable release?
 - How are ontology terms discovered, selected, created, and reviewed?

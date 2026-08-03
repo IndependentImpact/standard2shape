@@ -39,3 +39,11 @@ _Avoid_: Shape graph, file tree, UI layout
 **Document Section**:
 A first-class structural container in the document tree that groups child sections or placements without capturing or constraining data itself.
 _Avoid_: Empty shape, heading field, UI group
+
+**Canonical Guidance**:
+Authoritative instructional or explanatory text that is part of the standard and may be attached to a document section or canonical shape.
+_Avoid_: UI help, tooltip copy, placeholder
+
+**Supplemental Guidance**:
+Non-canonical text added by a UI developer for a particular interface, such as examples or task-specific clarification.
+_Avoid_: Canonical guidance, normative text
