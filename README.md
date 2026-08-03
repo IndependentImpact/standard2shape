@@ -25,5 +25,6 @@ The project is currently in requirements discovery. See [SPEC.md](SPEC.md) for t
 - The output is canonical SHACL, not generated UI.
 - Presentation annotations remain a separate concern handled by `shape2form` overlays and annotation tooling.
 - Canonical guidance remains independently available; UI-specific guidance may supplement but never replace it.
+- Semantic and quantitative applicability requirements are authoritative structured definitions; executable evaluators are versioned bindings with test vectors.
 - Changes must be validated and reviewable before they alter a canonical standard.
 

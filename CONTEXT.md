@@ -51,3 +51,23 @@ _Avoid_: Canonical guidance, normative text
 **Placement Context**:
 Canonical context owned by a document placement, such as applicability guidance, that explains the referenced shape's role in that document without changing its constraints.
 _Avoid_: Constraint override, UI context
+
+**Applicability Requirement**:
+A canonical rule that must be satisfied before a methodology, document section, or requirement applies.
+_Avoid_: Visibility rule, UI condition
+
+**Semantic Requirement**:
+An applicability requirement evaluated against RDF meaning and relationships, normally by SHACL under an explicit reasoning profile.
+_Avoid_: Text rule, category label
+
+**Quantitative Requirement**:
+An applicability requirement expressed as a structured rule over typed quantities, units, thresholds, or formulas.
+_Avoid_: Numerical requirement, R check
+
+**Evaluation Binding**:
+A versioned link from an authoritative requirement definition to a software implementation that evaluates it.
+_Avoid_: Requirement definition, source code ownership
+
+**Applicability Assessment**:
+The result of evaluating applicability requirements, containing conformance, violations, and an attestation of what was checked.
+_Avoid_: Boolean result, form validation

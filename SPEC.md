@@ -47,6 +47,17 @@ A document placement may own canonical context specific to that use of a reusabl
 
 If two uses require different constraints, they must reference distinct canonical shapes or an explicit specialization relationship. Contextual constraint overrides are not permitted because they would make the same shape mean different things depending on where it appears.
 
+## Confirmed applicability model
+
+Applicability is represented by first-class **applicability requirements**, each carrying canonical guidance and one of two evaluation models:
+
+- a **semantic requirement** is defined by SHACL and an explicit reasoning profile, including required preprocessing such as SKOS hierarchy materialisation; and
+- a **quantitative requirement** is an authoritative structured definition over typed inputs, units, thresholds, and formulas.
+
+A quantitative requirement's software implementation—for example an R applicability function—is a versioned **evaluation binding**, not the source of truth. Simple numeric bounds may compile to SHACL constraints; multi-variable calculations may require an external evaluator. The canonical requirement remains independent of implementation language.
+
+Every executable requirement has mandatory valid, invalid, and boundary test vectors. Semantic and quantitative evaluators return one **applicability assessment** contract containing conformance, violations, and an attestation identifying the requirement, version, evaluator, and evidence checked.
+
 ## Confirmed guidance boundary
 
 **Canonical guidance** is part of the standard. Document sections and canonical node or property shapes may carry authoritative instructions, explanations, applicability guidance, and definitions. Downstream UIs use that content as the default source for help text and extended information, reducing the amount of presentation copy each UI developer must create.
@@ -105,7 +116,7 @@ These have not yet been confirmed:
 - Which SHACL Core features belong in the first usable release?
 - How are ontology terms discovered, selected, created, and reviewed?
 - How should nested structures, reusable sections, and cross-file references appear in the UI?
-- Is applicability represented only as canonical guidance, or can it also be a machine-evaluable rule?
+- What RDF vocabulary and serialization represent quantitative definitions, evaluation bindings, reasoning profiles, test vectors, and applicability assessments?
 - What validation levels are required before save, review, and publication?
 - Is the output an in-place source edit, a generated patch, a branch, or a pull request?
 - How should unsupported advanced SHACL and SHACL-SPARQL constructs be preserved?
