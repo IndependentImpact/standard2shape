@@ -20,3 +20,10 @@ _Avoid_: Form, Turtle file, schema file
 A SHACL node or property shape that expresses the standard's normative data structure or constraints, independent of UI presentation.
 _Avoid_: Form field, UI schema
 
+**Document Order**:
+The normative sequence of chapters, sections, requirement groups, and requirements in a standards-based document.
+_Avoid_: UI order, field order, layout order
+
+**Presentation Order**:
+The sequence in which a particular generated interface presents fields to its users; it is not part of the canonical document definition.
+_Avoid_: Document order, canonical order

@@ -24,7 +24,13 @@ A specialist who reviews proposed canonical-shape changes for semantic and graph
 
 The author works on an **ordered shape bundle** representing one complete complex document or form, for example a PDD or monitoring report. The bundle may span multiple source files, but it is understood and validated as one coherent document definition.
 
-The exact ordering model, source-file ownership rules, import boundaries, and save behavior remain open requirements.
+The exact structural representation, source-file ownership rules, import boundaries, and save behavior remain open requirements.
+
+## Confirmed ordering boundary
+
+The bundle's order is **document order**: the normative sequence of chapters, sections, requirement groups, and requirements in the standard's document definition. It belongs to `standard2shape` because changing it changes the canonical structure of the document.
+
+**Presentation order** belongs to `shape2form`: it controls how a particular generated interface arranges fields for its users. Canonical document order must therefore not be encoded as `ui:order` or another presentation annotation.
 
 ## Product boundary
 
@@ -34,7 +40,7 @@ The exact ordering model, source-file ownership rules, import boundaries, and sa
 - paths and target classes;
 - datatypes and nested-node relationships;
 - cardinality and value constraints;
-- document structure and ordering where that ordering is canonical to the document definition;
+- canonical document structure and document order;
 - validation and review of proposed semantic changes.
 
 `shape2form` remains downstream and owns form compilation, rendering, previews, and presentation-authoring workflows. UI presentation annotations are not canonical-shape edits and remain separate from this product.
@@ -71,7 +77,7 @@ These have not yet been confirmed:
 
 ## Open requirements
 
-- How is bundle order represented, and which kinds of order are canonical?
+- How is canonical document structure and order represented?
 - Can one shape appear in multiple positions or document bundles?
 - What owns a shape when the bundle spans multiple files?
 - Which SHACL Core features belong in the first usable release?
@@ -85,4 +91,3 @@ These have not yet been confirmed:
 ## Acceptance criteria
 
 Acceptance criteria will be added as each open requirement is resolved. The specification is not implementation-ready while the status remains `requirements discovery`.
-
