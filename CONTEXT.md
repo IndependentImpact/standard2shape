@@ -33,5 +33,9 @@ A position in the ordered document tree that references a reusable canonical sha
 _Avoid_: Shape copy, field instance
 
 **Document Tree**:
-The ordered hierarchy of document placements that defines the normative structure of one complete standards-based document.
+The ordered hierarchy of document sections and document placements that defines the normative structure of one complete standards-based document.
 _Avoid_: Shape graph, file tree, UI layout
+
+**Document Section**:
+A first-class structural container in the document tree that groups child sections or placements without capturing or constraining data itself.
+_Avoid_: Empty shape, heading field, UI group

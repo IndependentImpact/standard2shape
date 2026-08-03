@@ -34,7 +34,10 @@ The bundle's order is **document order**: the normative sequence of chapters, se
 
 ## Confirmed structure and reuse model
 
-The canonical document structure is an ordered **document tree**. Each node in that tree is a **document placement** that references a reusable canonical shape and supplies its parent and sequence within this document.
+The canonical document structure is an ordered **document tree** containing two kinds of node:
+
+- a **document section**, which is a structural container and may contain child sections or placements without capturing or constraining data; and
+- a **document placement**, which references a reusable canonical shape and supplies its parent and sequence within this document.
 
 Canonical shapes remain graph entities rather than being copied into the tree. The same shape may therefore be referenced by multiple document bundles or by multiple placements in one bundle without duplicating its SHACL definition. Placement owns document context and order; the referenced shape owns semantic constraints.
 
@@ -83,7 +86,7 @@ These have not yet been confirmed:
 
 ## Open requirements
 
-- Which document-tree nodes are structural containers, and which reference data-bearing canonical shapes?
+- What canonical content, if any, belongs on a document section beyond identity, title, hierarchy, and order?
 - What owns a shape when the bundle spans multiple files?
 - Which SHACL Core features belong in the first usable release?
 - How are ontology terms discovered, selected, created, and reviewed?
