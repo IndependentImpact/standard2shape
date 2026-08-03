@@ -41,6 +41,12 @@ The canonical document structure is an ordered **document tree** containing two 
 
 Canonical shapes remain graph entities rather than being copied into the tree. The same shape may therefore be referenced by multiple document bundles or by multiple placements in one bundle without duplicating its SHACL definition. Placement owns document context and order; the referenced shape owns semantic constraints.
 
+## Confirmed placement boundary
+
+A document placement may own canonical context specific to that use of a reusable shape, including applicability guidance. It may not override the referenced shape's datatype, cardinality, value, or other semantic constraints.
+
+If two uses require different constraints, they must reference distinct canonical shapes or an explicit specialization relationship. Contextual constraint overrides are not permitted because they would make the same shape mean different things depending on where it appears.
+
 ## Confirmed guidance boundary
 
 **Canonical guidance** is part of the standard. Document sections and canonical node or property shapes may carry authoritative instructions, explanations, applicability guidance, and definitions. Downstream UIs use that content as the default source for help text and extended information, reducing the amount of presentation copy each UI developer must create.
@@ -99,6 +105,7 @@ These have not yet been confirmed:
 - Which SHACL Core features belong in the first usable release?
 - How are ontology terms discovered, selected, created, and reviewed?
 - How should nested structures, reusable sections, and cross-file references appear in the UI?
+- Is applicability represented only as canonical guidance, or can it also be a machine-evaluable rule?
 - What validation levels are required before save, review, and publication?
 - Is the output an in-place source edit, a generated patch, a branch, or a pull request?
 - How should unsupported advanced SHACL and SHACL-SPARQL constructs be preserved?

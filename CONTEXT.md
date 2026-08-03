@@ -29,7 +29,7 @@ The sequence in which a particular generated interface presents fields to its us
 _Avoid_: Document order, canonical order
 
 **Document Placement**:
-A position in the ordered document tree that references a reusable canonical shape and supplies its document-specific parent and sequence.
+A position in the ordered document tree that references a reusable canonical shape and supplies document-specific context, parent, and sequence without overriding the shape's constraints.
 _Avoid_: Shape copy, field instance
 
 **Document Tree**:
@@ -47,3 +47,7 @@ _Avoid_: UI help, tooltip copy, placeholder
 **Supplemental Guidance**:
 Non-canonical text added by a UI developer for a particular interface, such as examples or task-specific clarification; it can accompany but never replace canonical guidance.
 _Avoid_: Canonical guidance, normative text
+
+**Placement Context**:
+Canonical context owned by a document placement, such as applicability guidance, that explains the referenced shape's role in that document without changing its constraints.
+_Avoid_: Constraint override, UI context
