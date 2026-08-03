@@ -41,9 +41,9 @@ A first-class structural container in the document tree that groups child sectio
 _Avoid_: Empty shape, heading field, UI group
 
 **Canonical Guidance**:
-Authoritative instructional or explanatory text that is part of the standard and may be attached to a document section or canonical shape.
+Authoritative instructional or explanatory text that is part of the standard, remains independently available in every conforming UI, and may be attached to a document section or canonical shape.
 _Avoid_: UI help, tooltip copy, placeholder
 
 **Supplemental Guidance**:
-Non-canonical text added by a UI developer for a particular interface, such as examples or task-specific clarification.
+Non-canonical text added by a UI developer for a particular interface, such as examples or task-specific clarification; it can accompany but never replace canonical guidance.
 _Avoid_: Canonical guidance, normative text

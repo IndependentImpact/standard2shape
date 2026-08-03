@@ -24,5 +24,6 @@ The project is currently in requirements discovery. See [SPEC.md](SPEC.md) for t
 - The primary user is a standards author; an RDF reviewer provides semantic and graph-model oversight.
 - The output is canonical SHACL, not generated UI.
 - Presentation annotations remain a separate concern handled by `shape2form` overlays and annotation tooling.
+- Canonical guidance remains independently available; UI-specific guidance may supplement but never replace it.
 - Changes must be validated and reviewable before they alter a canonical standard.
 

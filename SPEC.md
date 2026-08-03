@@ -47,7 +47,7 @@ Canonical shapes remain graph entities rather than being copied into the tree. T
 
 How guidance is revealed—always visible, hover, click, disclosure, or another interaction—is a presentation concern owned by `shape2form`. A UI developer may also add **supplemental guidance**, such as examples or task-specific clarification, for a particular interface.
 
-The precedence and composition rules between canonical and supplemental guidance remain to be resolved; canonical guidance must not be silently lost.
+Canonical guidance and supplemental guidance are separate content channels. A conforming UI must keep canonical guidance available and traceable to the standard; supplemental guidance may accompany it but may not replace, clear, or silently hide it. This requires downstream representations to preserve the provenance of both channels rather than collapsing them into one description field.
 
 ## Product boundary
 
@@ -94,7 +94,7 @@ These have not yet been confirmed:
 
 ## Open requirements
 
-- How are canonical guidance and supplemental UI guidance composed without hiding the standard's authoritative text?
+- How should each renderer visually compose canonical and supplemental guidance while preserving their distinct provenance?
 - What owns a shape when the bundle spans multiple files?
 - Which SHACL Core features belong in the first usable release?
 - How are ontology terms discovered, selected, created, and reviewed?
