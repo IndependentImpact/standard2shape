@@ -24,13 +24,19 @@ A specialist who reviews proposed canonical-shape changes for semantic and graph
 
 The author works on an **ordered shape bundle** representing one complete complex document or form, for example a PDD or monitoring report. The bundle may span multiple source files, but it is understood and validated as one coherent document definition.
 
-The exact structural representation, source-file ownership rules, import boundaries, and save behavior remain open requirements.
+Source-file ownership rules, import boundaries, and save behavior remain open requirements.
 
 ## Confirmed ordering boundary
 
 The bundle's order is **document order**: the normative sequence of chapters, sections, requirement groups, and requirements in the standard's document definition. It belongs to `standard2shape` because changing it changes the canonical structure of the document.
 
 **Presentation order** belongs to `shape2form`: it controls how a particular generated interface arranges fields for its users. Canonical document order must therefore not be encoded as `ui:order` or another presentation annotation.
+
+## Confirmed structure and reuse model
+
+The canonical document structure is an ordered **document tree**. Each node in that tree is a **document placement** that references a reusable canonical shape and supplies its parent and sequence within this document.
+
+Canonical shapes remain graph entities rather than being copied into the tree. The same shape may therefore be referenced by multiple document bundles or by multiple placements in one bundle without duplicating its SHACL definition. Placement owns document context and order; the referenced shape owns semantic constraints.
 
 ## Product boundary
 
@@ -77,8 +83,7 @@ These have not yet been confirmed:
 
 ## Open requirements
 
-- How is canonical document structure and order represented?
-- Can one shape appear in multiple positions or document bundles?
+- Which document-tree nodes are structural containers, and which reference data-bearing canonical shapes?
 - What owns a shape when the bundle spans multiple files?
 - Which SHACL Core features belong in the first usable release?
 - How are ontology terms discovered, selected, created, and reviewed?

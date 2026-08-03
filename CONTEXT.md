@@ -27,3 +27,11 @@ _Avoid_: UI order, field order, layout order
 **Presentation Order**:
 The sequence in which a particular generated interface presents fields to its users; it is not part of the canonical document definition.
 _Avoid_: Document order, canonical order
+
+**Document Placement**:
+A position in the ordered document tree that references a reusable canonical shape and supplies its document-specific parent and sequence.
+_Avoid_: Shape copy, field instance
+
+**Document Tree**:
+The ordered hierarchy of document placements that defines the normative structure of one complete standards-based document.
+_Avoid_: Shape graph, file tree, UI layout
