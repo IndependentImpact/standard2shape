@@ -16,7 +16,7 @@ ordered canonical SHACL shape bundle
 Flutter / HTML / React forms
 ```
 
-The project is currently in requirements discovery. See [SPEC.md](SPEC.md) for the living product specification and [CONTEXT.md](CONTEXT.md) for the project vocabulary.
+The project is currently in requirements discovery with a phased delivery backlog. See [SPEC.md](SPEC.md) for the living product specification, [CONTEXT.md](CONTEXT.md) for the project vocabulary, and [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the implementation sequence and GitHub issue map.
 
 ## Principles confirmed so far
 
@@ -27,4 +27,3 @@ The project is currently in requirements discovery. See [SPEC.md](SPEC.md) for t
 - Canonical guidance remains independently available; UI-specific guidance may supplement but never replace it.
 - Semantic and quantitative applicability requirements are authoritative structured definitions; executable evaluators are versioned bindings with test vectors.
 - Changes must be validated and reviewable before they alter a canonical standard.
-
