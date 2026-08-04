@@ -32,6 +32,15 @@ A standard authorization references an indicator or methodology; it does not abs
 
 The required granularity of authorization—including whether a standard authorizes exact indicator–methodology version pairings or independently authorizes compatible versions—remains an open governance decision.
 
+## Confirmed formula boundary
+
+An **indicator formula** and a methodology **equation step** are both mathematical expressions, but they have different identity and ownership:
+
+- the indicator formula is the indicator's identity-defining mathematical expression and remains stable across methodologies that determine the same indicator; and
+- an equation step belongs to one methodology and is one ordered transformation in that methodology's operational procedure.
+
+They are sibling specializations of a neutral mathematical-expression concept, not a subtype relationship in either direction. A methodology may use multiple equation steps to operationalize one indicator formula, and two methodologies may use different equation steps while targeting the same indicator. The model may link a methodology explicitly to the indicator formula it implements, but must not infer that each equation step is itself an indicator formula.
+
 ## Confirmed unit of authorship
 
 The author works on an **ordered shape bundle** representing one complete complex document or form, for example a PDD or monitoring report. The bundle may span multiple source files, but it is understood and validated as one coherent document definition.
@@ -70,6 +79,12 @@ A quantitative requirement's software implementation—for example an R applicab
 
 Every executable requirement has mandatory valid, invalid, and boundary test vectors. Semantic and quantitative evaluators return one **applicability assessment** contract containing conformance, violations, and an attestation identifying the requirement, version, evaluator, and evidence checked.
 
+## Confirmed execution boundary
+
+`standard2shape` authors and locally validates canonical standard packages; it does not operate a separate hosted validation service. One reusable validation interface applies immutable packages and returns the common assessment contract, so local tooling and hosted execution cannot silently implement different semantics.
+
+`ii-backend` owns the II Platform's hosted API, authentication, authorization, artifact registry and storage, package selection, execution orchestration, and attestations. Approved methodology calculations may be delegated to trusted-compute implementations through versioned evaluation bindings. Neither deployment mode becomes the source of truth: the normative packages and their conformance suites remain authoritative.
+
 ## Confirmed guidance boundary
 
 **Canonical guidance** is part of the standard. Document sections and canonical node or property shapes may carry authoritative instructions, explanations, applicability guidance, and definitions. Downstream UIs use that content as the default source for help text and extended information, reducing the amount of presentation copy each UI developer must create.
@@ -92,6 +107,8 @@ Canonical guidance and supplemental guidance are separate content channels. A co
 It must preserve the separate authority of standards, indicators, and methodologies. Authoring or executing a standard package must not silently turn referenced indicator definitions or methodology applicability conditions into standard-owned rules.
 
 `shape2form` remains downstream and owns form compilation, rendering, previews, and presentation-authoring workflows. UI presentation annotations are not canonical-shape edits and remain separate from this product.
+
+`standard2shape` does not own hosted user accounts, operational artifact storage, a public validation API, standard authorization workflows, or production execution orchestration. Those responsibilities belong to `ii-backend`; duplicating them here is a non-goal.
 
 ## Required qualities
 
@@ -134,6 +151,7 @@ These have not yet been confirmed:
 - What validation levels are required before save, review, and publication?
 - Does a standard authorize exact compatible indicator–methodology version pairings, or authorize indicator and methodology versions independently?
 - Which repository or release process publishes each normative package, and which component assembles them for execution without changing their ownership?
+- What technology-neutral validation interface and assessment serialization allow local tooling, `ii-backend`, and trusted-compute bindings to run the same conformance suites?
 - Is the output an in-place source edit, a generated patch, a branch, or a pull request?
 - How should unsupported advanced SHACL and SHACL-SPARQL constructs be preserved?
 - What relationship should the editor have to a live `shape2form` preview?

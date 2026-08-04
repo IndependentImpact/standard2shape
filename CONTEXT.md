@@ -20,9 +20,17 @@ _Avoid_: Methodology, indicator, validation bundle
 The domain unit targeted by a methodology: the canonical definition of what is measured, quantified, or reported, including its meaning and applicable measurement unit or dimension.
 _Avoid_: Methodology result value, formula, applicability condition
 
+**Indicator Formula**:
+An indicator's identity-defining mathematical expression: the canonical relationship among quantities that distinguishes what the indicator means, independently of any methodology used to determine it.
+_Avoid_: Methodology equation, calculation step, evaluator code
+
 **Methodology**:
 A canonical procedure for determining an indicator, including its semantic and quantitative applicability conditions, required inputs, calculations, and evidence requirements.
 _Avoid_: Standard, indicator, evaluator implementation
+
+**Equation Step**:
+A methodology-owned transformation that consumes variables or constants and produces an intermediate or final variable as one step in determining an indicator. It may operationalize part of an indicator formula but is not itself an indicator formula.
+_Avoid_: Indicator formula, indicator definition
 
 **Standard Authorization**:
 A traceable normative statement that a standard permits an identified indicator or methodology to be used. Authorization does not transfer ownership of the indicator or methodology definition into the standard.
