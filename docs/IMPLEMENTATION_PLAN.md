@@ -29,6 +29,17 @@ The implementation should preserve these seams even if their technology changes 
 
 The first tracer will evaluate a Go core/local process with a React and TypeScript authoring interface because that aligns with `ii-backend` and the reusable `shape2form` packages. The kept architecture must be selected from evidence produced by the tracer and recorded before broad implementation begins.
 
+## GitHub delivery map
+
+| Milestone | Epic | Sub-issues |
+| --- | --- | --- |
+| M0 | [#1 — Runnable foundation and package contracts](https://github.com/IndependentImpact/standard2shape/issues/1) | [#7](https://github.com/IndependentImpact/standard2shape/issues/7), [#8](https://github.com/IndependentImpact/standard2shape/issues/8), [#9](https://github.com/IndependentImpact/standard2shape/issues/9), [#10](https://github.com/IndependentImpact/standard2shape/issues/10) |
+| M1 | [#2 — Lossless multi-file bundle workspace](https://github.com/IndependentImpact/standard2shape/issues/2) | [#11](https://github.com/IndependentImpact/standard2shape/issues/11), [#12](https://github.com/IndependentImpact/standard2shape/issues/12), [#13](https://github.com/IndependentImpact/standard2shape/issues/13), [#14](https://github.com/IndependentImpact/standard2shape/issues/14) |
+| M2 | [#3 — Canonical document and SHACL authoring](https://github.com/IndependentImpact/standard2shape/issues/3) | [#15](https://github.com/IndependentImpact/standard2shape/issues/15), [#16](https://github.com/IndependentImpact/standard2shape/issues/16), [#17](https://github.com/IndependentImpact/standard2shape/issues/17), [#18](https://github.com/IndependentImpact/standard2shape/issues/18) |
+| M3 | [#4 — Authorized indicators and methodologies](https://github.com/IndependentImpact/standard2shape/issues/4) | [#19](https://github.com/IndependentImpact/standard2shape/issues/19), [#20](https://github.com/IndependentImpact/standard2shape/issues/20), [#21](https://github.com/IndependentImpact/standard2shape/issues/21), [#22](https://github.com/IndependentImpact/standard2shape/issues/22) |
+| M4 | [#5 — Conformance, review, and deterministic releases](https://github.com/IndependentImpact/standard2shape/issues/5) | [#23](https://github.com/IndependentImpact/standard2shape/issues/23), [#24](https://github.com/IndependentImpact/standard2shape/issues/24), [#25](https://github.com/IndependentImpact/standard2shape/issues/25), [#26](https://github.com/IndependentImpact/standard2shape/issues/26) |
+| M5 | [#6 — Downstream integration and release hardening](https://github.com/IndependentImpact/standard2shape/issues/6) | [#27](https://github.com/IndependentImpact/standard2shape/issues/27), [#28](https://github.com/IndependentImpact/standard2shape/issues/28), [#29](https://github.com/IndependentImpact/standard2shape/issues/29), [#30](https://github.com/IndependentImpact/standard2shape/issues/30) |
+
 ## Delivery sequence
 
 ### Epic 1 — Runnable foundation and package contracts
