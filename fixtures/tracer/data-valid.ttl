@@ -1,0 +1,5 @@
+@prefix ex: <https://example.org/standard/> .
+
+ex:ProjectAlpha a ex:Project ;
+  ex:title "Community solar programme" .
+

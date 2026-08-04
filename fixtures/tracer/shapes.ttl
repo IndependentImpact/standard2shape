@@ -1,0 +1,20 @@
+@prefix ex: <https://example.org/standard/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:ProjectShape a sh:NodeShape ;
+  sh:targetClass ex:Project ;
+  sh:property ex:ProjectTitleShape ;
+  sh:sparql _:unsupportedRule .
+
+ex:ProjectTitleShape a sh:PropertyShape ;
+  sh:path ex:title ;
+  sh:minCount 1 ;
+  sh:datatype xsd:string ;
+  sh:name "Project title"@en ;
+  sh:description "Use the official project title consistently across all documents."@en .
+
+_:unsupportedRule
+  sh:message "Project titles must not be blank."@en ;
+  sh:select "SELECT $this WHERE { $this <https://example.org/standard/title> ?title . FILTER(STRLEN(STR(?title)) = 0) }" .
+

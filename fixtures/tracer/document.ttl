@@ -1,0 +1,23 @@
+@prefix ex: <https://example.org/standard/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix s2s: <https://standard2shape.dev/vocab#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:DemoStandardOntology a owl:Ontology ;
+  owl:imports <https://example.org/ontology/not-fetched-by-tracer> .
+
+ex:ProjectDocument a s2s:OrderedShapeBundle ;
+  rdfs:label "Project design document"@en ;
+  s2s:hasRootSection ex:ProjectOverview .
+
+ex:ProjectOverview a s2s:DocumentSection ;
+  rdfs:label "1. Project overview"@en ;
+  s2s:canonicalGuidance "Describe the project clearly enough for an independent reviewer to understand its purpose."@en ;
+  s2s:member ex:ProjectDetailsPlacement .
+
+ex:ProjectDetailsPlacement a s2s:DocumentPlacement ;
+  rdfs:label "Project details"@en ;
+  s2s:position "1"^^xsd:positiveInteger ;
+  s2s:shape ex:ProjectShape .
+
