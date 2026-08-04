@@ -44,6 +44,8 @@ go build ./...
 
 After installing Chromium once with `npx playwright install chromium`, run the desktop and mobile browser flow with `npm run test:e2e`. The tracer's architectural findings and limitations are recorded in [docs/architecture/tracer-7-evidence.md](docs/architecture/tracer-7-evidence.md).
 
+The tracer fixture now implements the experimental [canonical standard package contract v0.1](docs/contracts/package-v0.md), including the closed manifest schema, RDF vocabulary, pinned references, member digests, and stable package diagnostics.
+
 ## Principles confirmed so far
 
 - The unit of authorship is an ordered shape bundle representing one complete complex document or form.

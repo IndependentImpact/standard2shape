@@ -1,0 +1,120 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix s2s: <https://standard2shape.dev/vocab#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://standard2shape.dev/vocab> a owl:Ontology ;
+  owl:versionInfo "0.1.0" ;
+  rdfs:label "standard2shape canonical package vocabulary"@en ;
+  rdfs:comment "Vocabulary for standard-owned document structure, canonical guidance, release declarations, and immutable references to separately owned artifacts."@en .
+
+s2s:StandardRelease a rdfs:Class ;
+  rdfs:label "Standard release"@en .
+
+s2s:OrderedShapeBundle a rdfs:Class ;
+  rdfs:label "Ordered shape bundle"@en .
+
+s2s:DocumentNode a rdfs:Class ;
+  rdfs:label "Document node"@en .
+
+s2s:DocumentSection a rdfs:Class ;
+  rdfs:subClassOf s2s:DocumentNode ;
+  rdfs:label "Document section"@en .
+
+s2s:DocumentPlacement a rdfs:Class ;
+  rdfs:subClassOf s2s:DocumentNode ;
+  rdfs:label "Document placement"@en .
+
+s2s:ArtifactReference a rdfs:Class ;
+  rdfs:label "Artifact reference"@en ;
+  rdfs:comment "An identity, version, and digest reference that does not copy or transfer ownership of the referenced definition."@en .
+
+s2s:IndicatorReference a rdfs:Class ;
+  rdfs:subClassOf s2s:ArtifactReference ;
+  rdfs:label "Indicator reference"@en .
+
+s2s:MethodologyReference a rdfs:Class ;
+  rdfs:subClassOf s2s:ArtifactReference ;
+  rdfs:label "Methodology reference"@en .
+
+s2s:ReasoningProfile a rdfs:Class ;
+  rdfs:label "Reasoning profile"@en .
+
+s2s:definesDocument a rdf:Property ;
+  rdfs:domain s2s:StandardRelease ;
+  rdfs:range s2s:OrderedShapeBundle ;
+  rdfs:label "defines document"@en .
+
+s2s:hasRootSection a rdf:Property ;
+  rdfs:domain s2s:OrderedShapeBundle ;
+  rdfs:range s2s:DocumentSection ;
+  rdfs:label "has root section"@en .
+
+s2s:member a rdf:Property ;
+  rdfs:domain s2s:DocumentSection ;
+  rdfs:range s2s:DocumentNode ;
+  rdfs:label "member"@en .
+
+s2s:position a rdf:Property ;
+  rdfs:domain s2s:DocumentNode ;
+  rdfs:range xsd:positiveInteger ;
+  rdfs:label "document position"@en ;
+  rdfs:comment "One-based canonical document order among siblings; it is not presentation order."@en .
+
+s2s:shape a rdf:Property ;
+  rdfs:domain s2s:DocumentPlacement ;
+  rdfs:range sh:NodeShape ;
+  rdfs:label "references shape"@en .
+
+s2s:canonicalGuidance a rdf:Property ;
+  rdfs:domain s2s:DocumentNode ;
+  rdfs:range rdf:langString ;
+  rdfs:label "canonical guidance"@en ;
+  rdfs:comment "Authoritative standard guidance for a document node. Canonical guidance on SHACL shapes uses sh:description."@en .
+
+s2s:releaseVersion a rdf:Property ;
+  rdfs:domain s2s:StandardRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "release version"@en .
+
+s2s:authorizesIndicator a rdf:Property ;
+  rdfs:domain s2s:StandardRelease ;
+  rdfs:range s2s:IndicatorReference ;
+  rdfs:label "authorizes indicator"@en .
+
+s2s:authorizesMethodology a rdf:Property ;
+  rdfs:domain s2s:StandardRelease ;
+  rdfs:range s2s:MethodologyReference ;
+  rdfs:label "authorizes methodology"@en .
+
+s2s:forIndicator a rdf:Property ;
+  rdfs:domain s2s:MethodologyReference ;
+  rdfs:range s2s:IndicatorReference ;
+  rdfs:label "for indicator"@en .
+
+s2s:artifactVersion a rdf:Property ;
+  rdfs:domain s2s:ArtifactReference ;
+  rdfs:range xsd:string ;
+  rdfs:label "artifact version"@en .
+
+s2s:artifactDigest a rdf:Property ;
+  rdfs:domain s2s:ArtifactReference ;
+  rdfs:range xsd:string ;
+  rdfs:label "artifact digest"@en .
+
+s2s:usesReasoningProfile a rdf:Property ;
+  rdfs:domain s2s:StandardRelease ;
+  rdfs:range s2s:ReasoningProfile ;
+  rdfs:label "uses reasoning profile"@en .
+
+s2s:profileVersion a rdf:Property ;
+  rdfs:domain s2s:ReasoningProfile ;
+  rdfs:range xsd:string ;
+  rdfs:label "profile version"@en .
+
+s2s:entailmentRegime a rdf:Property ;
+  rdfs:domain s2s:ReasoningProfile ;
+  rdfs:range xsd:string ;
+  rdfs:label "entailment regime"@en .
