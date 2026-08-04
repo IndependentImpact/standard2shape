@@ -112,16 +112,30 @@ func validateStandardRelease(manifest Manifest, triples []sourcedTriple) []Diagn
 	entity := manifest.StandardRelease
 	var diagnostics []Diagnostic
 	diagnostics = append(diagnostics, requireTypedEntity(triples, entity.ID, s2sStandardRelease, entity.Source, "graph.standard_release.invalid")...)
+	for _, subject := range subjectsWith(triples, rdfType, s2sStandardRelease) {
+		if subject != entity.ID {
+			diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", sourceForType(triples, subject, s2sStandardRelease), "standard release %s is not declared by the manifest", subject))
+		}
+	}
 	if value := singleLiteral(triples, entity.ID, s2sReleaseVersion); value != entity.Version {
 		diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", entity.Source, "release version for %s is %q, expected %q", entity.ID, value, entity.Version))
 	}
+	documentIDs := make([]string, 0, len(manifest.DocumentRoots))
 	for _, root := range manifest.DocumentRoots {
-		if !contains(objectValues(triples, entity.ID, s2sDefinesDocument), root.ID) {
-			diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", entity.Source, "standard release does not define document root %s", root.ID))
-		}
+		documentIDs = append(documentIDs, root.ID)
 	}
-	if !contains(objectValues(triples, entity.ID, s2sUsesReasoning), manifest.ReasoningProfile.ID) {
-		diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", entity.Source, "standard release does not select reasoning profile %s", manifest.ReasoningProfile.ID))
+	if !sameValues(objectValues(triples, entity.ID, s2sDefinesDocument), documentIDs) {
+		diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", entity.Source, "standard release document declarations must exactly match manifest document roots"))
+	}
+	if !sameValues(objectValues(triples, entity.ID, s2sUsesReasoning), []string{manifest.ReasoningProfile.ID}) {
+		diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", entity.Source, "standard release must select exactly the manifest reasoning profile %s", manifest.ReasoningProfile.ID))
+	}
+	indicatorIDs, methodologyIDs := referenceIDs(manifest.References)
+	if !sameValues(objectValues(triples, entity.ID, s2sAuthIndicator), indicatorIDs) {
+		diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", entity.Source, "authorized indicators must exactly match manifest references"))
+	}
+	if !sameValues(objectValues(triples, entity.ID, s2sAuthMethodology), methodologyIDs) {
+		diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", entity.Source, "authorized methodologies must exactly match manifest references"))
 	}
 	return diagnostics
 }
@@ -129,6 +143,11 @@ func validateStandardRelease(manifest Manifest, triples []sourcedTriple) []Diagn
 func validateReasoningProfile(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	profile := manifest.ReasoningProfile
 	diagnostics := requireTypedEntity(triples, profile.ID, s2sReasoning, profile.Source, "graph.reasoning_profile.invalid")
+	for _, subject := range subjectsWith(triples, rdfType, s2sReasoning) {
+		if subject != profile.ID {
+			diagnostics = append(diagnostics, diagnostic("graph.reasoning_profile.invalid", sourceForType(triples, subject, s2sReasoning), "reasoning profile %s is not declared by the manifest", subject))
+		}
+	}
 	if value := singleLiteral(triples, profile.ID, s2sProfileVersion); value != profile.Version {
 		diagnostics = append(diagnostics, diagnostic("graph.reasoning_profile.invalid", profile.Source, "profile version for %s is %q, expected %q", profile.ID, value, profile.Version))
 	}
@@ -141,9 +160,21 @@ func validateReasoningProfile(manifest Manifest, triples []sourcedTriple) []Diag
 func validateReferences(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	var diagnostics []Diagnostic
 	indicatorIDs := map[string]bool{}
+	declared := map[string]bool{}
 	for _, reference := range manifest.References {
+		declared[reference.Kind+"\x00"+reference.ID] = true
 		if reference.Kind == "indicator" {
 			indicatorIDs[reference.ID] = true
+		}
+	}
+	for _, subject := range subjectsWith(triples, rdfType, s2sIndicatorRef) {
+		if !declared["indicator\x00"+subject] {
+			diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", sourceForType(triples, subject, s2sIndicatorRef), "indicator reference %s is not declared by the manifest", subject))
+		}
+	}
+	for _, subject := range subjectsWith(triples, rdfType, s2sMethodologyRef) {
+		if !declared["methodology\x00"+subject] {
+			diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", sourceForType(triples, subject, s2sMethodologyRef), "methodology reference %s is not declared by the manifest", subject))
 		}
 	}
 	for _, reference := range manifest.References {
@@ -175,6 +206,15 @@ func validateReferences(manifest Manifest, triples []sourcedTriple) []Diagnostic
 
 func validateDocuments(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	var diagnostics []Diagnostic
+	documentIDs := map[string]bool{}
+	for _, root := range manifest.DocumentRoots {
+		documentIDs[root.ID] = true
+	}
+	for _, subject := range subjectsWith(triples, rdfType, s2sBundle) {
+		if !documentIDs[subject] {
+			diagnostics = append(diagnostics, diagnostic("graph.document_root.invalid", sourceForType(triples, subject, s2sBundle), "ordered shape bundle %s is not declared by the manifest", subject))
+		}
+	}
 	shapeIDs := map[string]bool{}
 	for _, shape := range manifest.CanonicalShapes {
 		shapeIDs[shape.ID] = true
@@ -286,8 +326,15 @@ func validatePlacement(triples []sourcedTriple, placement, fallbackSource string
 
 func validateShapes(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	var diagnostics []Diagnostic
+	declared := map[string]bool{}
 	for _, shape := range manifest.CanonicalShapes {
+		declared[shape.ID] = true
 		diagnostics = append(diagnostics, requireTypedEntity(triples, shape.ID, shNodeShape, shape.Source, "graph.canonical_shape.invalid")...)
+	}
+	for _, subject := range subjectsWith(triples, rdfType, shNodeShape) {
+		if !declared[subject] {
+			diagnostics = append(diagnostics, diagnostic("graph.canonical_shape.undeclared", sourceForType(triples, subject, shNodeShape), "canonical node shape %s is not declared by the manifest", subject))
+		}
 	}
 	return diagnostics
 }
@@ -373,6 +420,51 @@ func sourceForType(triples []sourcedTriple, subject, typeIRI string) string {
 		}
 	}
 	return ""
+}
+
+func subjectsWith(triples []sourcedTriple, predicate, object string) []string {
+	var subjects []string
+	seen := map[string]bool{}
+	for _, statement := range triples {
+		if statement.Triple.Pred.String() == predicate && statement.Triple.Obj.String() == object && !seen[statement.Triple.Subj.String()] {
+			subjects = append(subjects, statement.Triple.Subj.String())
+			seen[statement.Triple.Subj.String()] = true
+		}
+	}
+	return subjects
+}
+
+func referenceIDs(references []ArtifactReference) (indicators, methodologies []string) {
+	for _, reference := range references {
+		if reference.Kind == "indicator" {
+			indicators = append(indicators, reference.ID)
+		} else if reference.Kind == "methodology" {
+			methodologies = append(methodologies, reference.ID)
+		}
+	}
+	return indicators, methodologies
+}
+
+func sameValues(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	counts := map[string]int{}
+	for _, value := range left {
+		counts[value]++
+	}
+	for _, value := range right {
+		counts[value]--
+		if counts[value] < 0 {
+			return false
+		}
+	}
+	for _, count := range counts {
+		if count != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func contains(values []string, expected string) bool {

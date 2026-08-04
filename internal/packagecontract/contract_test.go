@@ -104,33 +104,32 @@ func TestCanonicalSourcesRejectPresentationOrder(t *testing.T) {
 	if err := os.WriteFile(shapesPath, shapes, 0o644); err != nil {
 		t.Fatal(err)
 	}
-
-	manifestPath := filepath.Join(root, "manifest.json")
-	manifestData, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var manifest Manifest
-	if err := json.Unmarshal(manifestData, &manifest); err != nil {
-		t.Fatal(err)
-	}
-	for index := range manifest.Artifacts {
-		if manifest.Artifacts[index].Path == "shapes.ttl" {
-			manifest.Artifacts[index].Digest = digest(shapes)
-		}
-	}
-	updated, err := json.MarshalIndent(manifest, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	updateArtifactDigest(t, root, "shapes.ttl", shapes)
 
 	_, err = Open(root)
 	var contractErr *ContractError
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.presentation_order.forbidden") {
 		t.Fatalf("expected forbidden presentation-order diagnostic, got %v", err)
+	}
+}
+
+func TestCanonicalNodeShapesMustBeDeclared(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	shapesPath := filepath.Join(root, "shapes.ttl")
+	shapes, err := os.ReadFile(shapesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shapes = append(shapes, []byte("\n<https://example.org/standard/HiddenShape> a <http://www.w3.org/ns/shacl#NodeShape> .\n")...)
+	if err := os.WriteFile(shapesPath, shapes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "shapes.ttl", shapes)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.canonical_shape.undeclared") {
+		t.Fatalf("expected undeclared canonical-shape diagnostic, got %v", err)
 	}
 }
 
@@ -193,6 +192,31 @@ func copyFixture(t *testing.T, source string) string {
 		}
 	}
 	return target
+}
+
+func updateArtifactDigest(t *testing.T, root, relative string, data []byte) {
+	t.Helper()
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	for index := range manifest.Artifacts {
+		if manifest.Artifacts[index].Path == relative {
+			manifest.Artifacts[index].Digest = digest(data)
+		}
+	}
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func digest(data []byte) string {

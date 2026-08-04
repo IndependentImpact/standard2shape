@@ -21,7 +21,7 @@ The JSON manifest inventories package members and roots. RDF remains authoritati
 
 Every local canonical artifact records a package-relative path, one role, the `text/turtle` media type, and a SHA-256 digest of its exact bytes. Conformance vectors are local members with the same path and digest guarantees but are separated from canonical artifacts because they are evidence, not normative source graphs.
 
-All paths are lexical package-relative paths. Remote import resolution is disabled: each `owl:imports` statement must have a matching `reference-only` manifest declaration. Consumers verify pinned external references through an approved artifact source; they never infer ownership from inclusion in a standard manifest.
+All paths are lexical package-relative POSIX paths. On an indicator, methodology, or import entry, `source` identifies the standard-owned file containing the reference declaration—not the source or ownership of the external artifact. Remote import resolution is disabled: each `owl:imports` statement must have a matching `reference-only` manifest declaration. Consumers verify pinned external references through an approved artifact source; they never infer ownership from inclusion in a standard manifest.
 
 ## Document vocabulary
 
