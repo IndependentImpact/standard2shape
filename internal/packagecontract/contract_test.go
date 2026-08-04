@@ -133,6 +133,56 @@ func TestCanonicalNodeShapesMustBeDeclared(t *testing.T) {
 	}
 }
 
+func TestPinnedReferenceDoesNotImplyAuthorization(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte(`
+<https://example.org/standard/ContextIndicator> a <https://standard2shape.dev/vocab#IndicatorReference> ;
+  <https://standard2shape.dev/vocab#artifactVersion> "1.0.0" ;
+  <https://standard2shape.dev/vocab#artifactDigest> "sha256:4444444444444444444444444444444444444444444444444444444444444444" .
+`)...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.References = append(manifest.References, ArtifactReference{
+		Kind:    "indicator",
+		ID:      "https://example.org/standard/ContextIndicator",
+		Version: "1.0.0",
+		Digest:  "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+		Source:  "references.ttl",
+	})
+	for index := range manifest.Artifacts {
+		if manifest.Artifacts[index].Path == "references.ttl" {
+			manifest.Artifacts[index].Digest = digest(references)
+		}
+	}
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Open(root); err != nil {
+		t.Fatalf("a pinned contextual reference must not require authorization: %v", err)
+	}
+}
+
 func TestVersionedContractArtifactsParseLocally(t *testing.T) {
 	schemaData, err := os.ReadFile(filepath.Join("..", "..", "contracts", "v0", "package-manifest.schema.json"))
 	if err != nil {

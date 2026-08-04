@@ -131,11 +131,15 @@ func validateStandardRelease(manifest Manifest, triples []sourcedTriple) []Diagn
 		diagnostics = append(diagnostics, diagnostic("graph.standard_release.invalid", entity.Source, "standard release must select exactly the manifest reasoning profile %s", manifest.ReasoningProfile.ID))
 	}
 	indicatorIDs, methodologyIDs := referenceIDs(manifest.References)
-	if !sameValues(objectValues(triples, entity.ID, s2sAuthIndicator), indicatorIDs) {
-		diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", entity.Source, "authorized indicators must exactly match manifest references"))
+	for _, authorized := range objectValues(triples, entity.ID, s2sAuthIndicator) {
+		if !contains(indicatorIDs, authorized) {
+			diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", entity.Source, "authorized indicator %s is not a declared manifest reference", authorized))
+		}
 	}
-	if !sameValues(objectValues(triples, entity.ID, s2sAuthMethodology), methodologyIDs) {
-		diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", entity.Source, "authorized methodologies must exactly match manifest references"))
+	for _, authorized := range objectValues(triples, entity.ID, s2sAuthMethodology) {
+		if !contains(methodologyIDs, authorized) {
+			diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", entity.Source, "authorized methodology %s is not a declared manifest reference", authorized))
+		}
 	}
 	return diagnostics
 }
@@ -179,10 +183,8 @@ func validateReferences(manifest Manifest, triples []sourcedTriple) []Diagnostic
 	}
 	for _, reference := range manifest.References {
 		typeIRI := s2sIndicatorRef
-		authorization := s2sAuthIndicator
 		if reference.Kind == "methodology" {
 			typeIRI = s2sMethodologyRef
-			authorization = s2sAuthMethodology
 		}
 		diagnostics = append(diagnostics, requireTypedEntity(triples, reference.ID, typeIRI, reference.Source, "graph.reference.invalid")...)
 		if singleLiteral(triples, reference.ID, s2sArtifactVersion) != reference.Version {
@@ -190,9 +192,6 @@ func validateReferences(manifest Manifest, triples []sourcedTriple) []Diagnostic
 		}
 		if singleLiteral(triples, reference.ID, s2sArtifactDigest) != reference.Digest {
 			diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", reference.Source, "%s reference %s has a different digest", reference.Kind, reference.ID))
-		}
-		if !contains(objectValues(triples, manifest.StandardRelease.ID, authorization), reference.ID) {
-			diagnostics = append(diagnostics, diagnostic("graph.reference.invalid", manifest.StandardRelease.Source, "standard release does not authorize declared %s %s", reference.Kind, reference.ID))
 		}
 		if reference.Kind == "methodology" {
 			targets := objectValues(triples, reference.ID, s2sForIndicator)
