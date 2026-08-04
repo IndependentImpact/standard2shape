@@ -103,4 +103,3 @@ export interface ChangeSummary {
   patch: string;
   unsupportedPreserved: boolean;
 }
-

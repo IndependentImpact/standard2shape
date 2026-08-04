@@ -21,4 +21,3 @@ export async function saveGuidance(guidance: string): Promise<Snapshot> {
     }),
   );
 }
-

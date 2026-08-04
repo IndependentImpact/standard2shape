@@ -20,4 +20,3 @@ ex:ProjectDetailsPlacement a s2s:DocumentPlacement ;
   rdfs:label "Project details"@en ;
   s2s:position "1"^^xsd:positiveInteger ;
   s2s:shape ex:ProjectShape .
-

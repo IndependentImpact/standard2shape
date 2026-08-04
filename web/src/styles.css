@@ -125,4 +125,3 @@ button:disabled { background: #c7d0cb; color: #6c7a75; cursor: not-allowed; }
   .review-grid { display: grid; grid-template-columns: 1fr; }
   .release-meta { flex-wrap: wrap; }
 }
-
