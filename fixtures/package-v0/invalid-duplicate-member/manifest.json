@@ -1,0 +1,18 @@
+{
+  "manifestVersion": "0.1",
+  "id": "https://example.org/packages/duplicate/0.1.0",
+  "version": "0.1.0",
+  "standardRelease": { "id": "https://example.org/DuplicateRelease", "version": "0.1.0", "source": "document.ttl" },
+  "documentRoots": [{ "id": "https://example.org/DuplicateDocument", "source": "document.ttl" }],
+  "canonicalShapes": [{ "id": "https://example.org/DuplicateShape", "source": "document.ttl" }],
+  "artifacts": [
+    { "path": "document.ttl", "role": "document", "mediaType": "text/turtle", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000" },
+    { "path": "document.ttl", "role": "document", "mediaType": "text/turtle", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000" }
+  ],
+  "imports": [],
+  "references": [],
+  "reasoningProfile": { "id": "https://example.org/DuplicateProfile", "version": "0.1.0", "source": "document.ttl" },
+  "conformanceVectors": [
+    { "id": "https://example.org/tests/duplicate", "name": "duplicate member", "path": "data.ttl", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "expected": "conforms" }
+  ]
+}

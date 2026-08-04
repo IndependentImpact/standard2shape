@@ -1,22 +1,88 @@
 {
-  "id": "https://example.org/standards/demo/releases/0.1.0",
+  "manifestVersion": "0.1",
+  "id": "https://example.org/standards/demo/packages/0.1.0",
   "version": "0.1.0",
-  "document": "https://example.org/standard/ProjectDocument",
-  "sources": [
-    "document.ttl",
-    "shapes.ttl",
-    "references.ttl"
-  ],
-  "dataTests": [
+  "standardRelease": {
+    "id": "https://example.org/standard/DemoStandardRelease",
+    "version": "0.1.0",
+    "source": "references.ttl"
+  },
+  "documentRoots": [
     {
-      "name": "complete project",
-      "path": "data-valid.ttl",
-      "expectConforms": true
+      "id": "https://example.org/standard/ProjectDocument",
+      "source": "document.ttl"
+    }
+  ],
+  "canonicalShapes": [
+    {
+      "id": "https://example.org/standard/ProjectShape",
+      "source": "shapes.ttl"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "document.ttl",
+      "role": "document",
+      "mediaType": "text/turtle",
+      "digest": "sha256:c385ab12f553894dbafcd27906f1e3cef507eb7c134d8d37be81363c61460eab"
     },
     {
+      "path": "shapes.ttl",
+      "role": "shapes",
+      "mediaType": "text/turtle",
+      "digest": "sha256:622c04b5b919b2caadd9af104539a61f2ee8a885dacee512c67d710601fe1115"
+    },
+    {
+      "path": "references.ttl",
+      "role": "references",
+      "mediaType": "text/turtle",
+      "digest": "sha256:8b2bd8801db2b634dec043b2951ad73b38b289c384906c987b80250cf26d1fab"
+    }
+  ],
+  "imports": [
+    {
+      "source": "document.ttl",
+      "iri": "https://example.org/ontology/not-fetched-by-tracer",
+      "version": "1.0.0",
+      "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "policy": "reference-only"
+    }
+  ],
+  "references": [
+    {
+      "kind": "indicator",
+      "id": "https://example.org/standard/AvoidedEmissions",
+      "version": "1.0.0",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "source": "references.ttl"
+    },
+    {
+      "kind": "methodology",
+      "id": "https://example.org/standard/DemoMethodologyV1",
+      "version": "1.0.0",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "source": "references.ttl"
+    }
+  ],
+  "reasoningProfile": {
+    "id": "https://example.org/standard/NoEntailmentProfile",
+    "version": "0.1.0",
+    "source": "references.ttl"
+  },
+  "conformanceVectors": [
+    {
+      "id": "https://example.org/standards/demo/tests/complete-project",
+      "name": "complete project",
+      "path": "data-valid.ttl",
+      "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f",
+      "expected": "conforms"
+    },
+    {
+      "id": "https://example.org/standards/demo/tests/missing-title",
       "name": "project missing required title",
       "path": "data-invalid.ttl",
-      "expectConforms": false
+      "digest": "sha256:0ede0b49823df17f7d5d47f19e1265001b4059c0f9ae81cd2322f8a489e00df7",
+      "expected": "non-conforms"
     }
   ]
 }
