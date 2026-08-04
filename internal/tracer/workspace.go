@@ -3,7 +3,6 @@ package tracer
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +14,8 @@ import (
 	"sync"
 
 	"github.com/knakk/rdf"
+
+	"github.com/IndependentImpact/standard2shape/internal/packagecontract"
 )
 
 const (
@@ -65,10 +66,11 @@ func NewSession(fixtureRoot string) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	manifest, err := readManifest(absFixture)
+	pkg, err := packagecontract.Open(absFixture)
 	if err != nil {
 		return nil, err
 	}
+	manifest := pkg.Manifest
 	tempRoot, err := os.MkdirTemp("", "standard2shape-tracer-")
 	if err != nil {
 		return nil, err
@@ -77,10 +79,7 @@ func NewSession(fixtureRoot string) (*Session, error) {
 		_ = os.RemoveAll(tempRoot)
 		return nil, loadErr
 	}
-	paths := append([]string{"manifest.json"}, manifest.Sources...)
-	for _, test := range manifest.DataTests {
-		paths = append(paths, test.Path)
-	}
+	paths := append([]string{"manifest.json"}, manifest.LocalPaths()...)
 	for _, rel := range paths {
 		source, err := safeJoin(absFixture, rel)
 		if err != nil {
@@ -198,7 +197,8 @@ func loadBundle(root string) (loadedBundle, error) {
 	}
 	var triples []sourcedTriple
 	var sources []SourceSummary
-	for _, rel := range manifest.Sources {
+	for _, artifact := range manifest.Artifacts {
+		rel := artifact.Path
 		path, err := safeJoin(root, rel)
 		if err != nil {
 			return loadedBundle{}, err
@@ -237,33 +237,19 @@ func loadBundle(root string) (loadedBundle, error) {
 }
 
 func readManifest(root string) (Manifest, error) {
-	path, err := safeJoin(root, "manifest.json")
-	if err != nil {
-		return Manifest{}, err
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return Manifest{}, err
-	}
-	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return Manifest{}, fmt.Errorf("parse manifest: %w", err)
-	}
-	if manifest.ID == "" || manifest.Version == "" || manifest.Document == "" {
-		return Manifest{}, errors.New("manifest requires id, version, and document")
-	}
-	if len(manifest.Sources) == 0 {
-		return Manifest{}, errors.New("manifest requires at least one source")
-	}
-	return manifest, nil
+	return packagecontract.ReadManifest(root)
 }
 
 func summarizeGraph(manifest Manifest, triples []sourcedTriple) (DocumentSummary, []ShapeSummary, error) {
-	if !hasType(triples, manifest.Document, s2sBundle) {
-		return DocumentSummary{}, nil, fmt.Errorf("manifest document %s is not an OrderedShapeBundle", manifest.Document)
+	if len(manifest.DocumentRoots) == 0 {
+		return DocumentSummary{}, nil, errors.New("manifest contains no document root")
 	}
-	document := DocumentSummary{ID: manifest.Document, Label: literalObject(triples, manifest.Document, rdfsLabel)}
-	for _, sectionID := range objectValues(triples, manifest.Document, s2sRootSection) {
+	documentID := manifest.DocumentRoots[0].ID
+	if !hasType(triples, documentID, s2sBundle) {
+		return DocumentSummary{}, nil, fmt.Errorf("manifest document %s is not an OrderedShapeBundle", documentID)
+	}
+	document := DocumentSummary{ID: documentID, Label: literalObject(triples, documentID, rdfsLabel)}
+	for _, sectionID := range objectValues(triples, documentID, s2sRootSection) {
 		if !hasType(triples, sectionID, s2sSection) {
 			return DocumentSummary{}, nil, fmt.Errorf("root section %s is not a DocumentSection", sectionID)
 		}
@@ -334,7 +320,7 @@ func assessData(root string, manifest Manifest, shapes []ShapeSummary) (Validati
 		Validator:        validatorName,
 		ValidatorVersion: validatorVersion,
 	}
-	for _, test := range manifest.DataTests {
+	for _, test := range manifest.ConformanceVectors {
 		path, err := safeJoin(root, test.Path)
 		if err != nil {
 			return ValidationAssessment{}, err
@@ -357,7 +343,7 @@ func assessData(root string, manifest Manifest, shapes []ShapeSummary) (Validati
 		assessment.Cases = append(assessment.Cases, ValidationCase{
 			Name:             test.Name,
 			Conforms:         len(violations) == 0,
-			ExpectedConforms: test.ExpectConforms,
+			ExpectedConforms: test.Expected == "conforms",
 			Violations:       violations,
 		})
 	}

@@ -1,18 +1,8 @@
 package tracer
 
-type Manifest struct {
-	ID        string     `json:"id"`
-	Version   string     `json:"version"`
-	Document  string     `json:"document"`
-	Sources   []string   `json:"sources"`
-	DataTests []DataTest `json:"dataTests"`
-}
+import "github.com/IndependentImpact/standard2shape/internal/packagecontract"
 
-type DataTest struct {
-	Name           string `json:"name"`
-	Path           string `json:"path"`
-	ExpectConforms bool   `json:"expectConforms"`
-}
+type Manifest = packagecontract.Manifest
 
 type SourceSummary struct {
 	Path       string `json:"path"`

@@ -36,6 +36,34 @@ _Avoid_: Indicator formula, indicator definition
 A traceable normative statement that a standard permits an identified indicator or methodology to be used. Authorization does not transfer ownership of the indicator or methodology definition into the standard.
 _Avoid_: Definition, copy, import
 
+**Standard Release**:
+An immutable identified version of a standard's normative document structure, requirements, guidance, and authorizations.
+_Avoid_: Working bundle, methodology release, package manifest
+
+**Standard Package**:
+A versioned local bundle of standard-owned canonical sources, declared external references, reasoning profile, and conformance vectors assembled around one standard release.
+_Avoid_: Indicator package, methodology package, hosted registry record
+
+**Package Manifest**:
+The deterministic inventory of a standard package's identity, version, local members, document and shape roots, pinned external references, reasoning profile, and conformance vectors.
+_Avoid_: RDF source, standard definition, deployment configuration
+
+**Source Artifact**:
+A standard-owned canonical file included in a standard package and identified by its package-relative path, media type, role, and digest.
+_Avoid_: External artifact, imported ontology, working copy
+
+**Artifact Reference**:
+An identity, version, and digest declaration for a separately owned indicator, methodology, ontology, or other normative dependency that is not copied into the standard package.
+_Avoid_: Source artifact, authorization, vendored definition
+
+**Reasoning Profile**:
+The versioned declaration of entailment or preprocessing assumptions under which a package's semantic requirements are evaluated.
+_Avoid_: Validator implementation, ontology import, conformance result
+
+**Conformance Vector**:
+An identified package test case containing evidence and a deterministic expected outcome for checking an implementation against the canonical requirements.
+_Avoid_: Production submission, unit test implementation, validation result
+
 **Ordered Shape Bundle**:
 An ordered collection of canonical SHACL shapes that together define the data requirements of one complete complex document or form.
 _Avoid_: Form, Turtle file, schema file
