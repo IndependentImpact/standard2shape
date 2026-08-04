@@ -1,0 +1,22 @@
+{
+  "id": "https://example.org/standards/demo/releases/0.1.0",
+  "version": "0.1.0",
+  "document": "https://example.org/standard/ProjectDocument",
+  "sources": [
+    "document.ttl",
+    "shapes.ttl",
+    "references.ttl"
+  ],
+  "dataTests": [
+    {
+      "name": "complete project",
+      "path": "data-valid.ttl",
+      "expectConforms": true
+    },
+    {
+      "name": "project missing required title",
+      "path": "data-invalid.ttl",
+      "expectConforms": false
+    }
+  ]
+}

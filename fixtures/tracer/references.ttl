@@ -1,0 +1,15 @@
+@prefix ex: <https://example.org/standard/> .
+@prefix s2s: <https://standard2shape.dev/vocab#> .
+
+ex:DemoStandardRelease a s2s:StandardRelease ;
+  s2s:authorizesIndicator ex:AvoidedEmissions ;
+  s2s:authorizesMethodology ex:DemoMethodologyV1 .
+
+ex:DemoMethodologyV1 a s2s:MethodologyReference ;
+  s2s:forIndicator ex:AvoidedEmissions ;
+  s2s:artifactVersion "1.0.0" ;
+  s2s:artifactDigest "sha256:synthetic-methodology-fixture" .
+
+ex:AvoidedEmissions a s2s:IndicatorReference ;
+  s2s:artifactVersion "1.0.0" ;
+  s2s:artifactDigest "sha256:synthetic-indicator-fixture" .

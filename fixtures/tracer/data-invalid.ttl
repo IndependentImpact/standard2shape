@@ -1,0 +1,3 @@
+@prefix ex: <https://example.org/standard/> .
+
+ex:ProjectWithoutTitle a ex:Project .

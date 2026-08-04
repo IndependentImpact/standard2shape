@@ -1,0 +1,26 @@
+{
+  "name": "standard2shape",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config web/vite.config.ts",
+    "build": "vite build --config web/vite.config.ts",
+    "typecheck": "tsc -p web/tsconfig.json --noEmit",
+    "tracer": "npm run build && go run ./cmd/standard2shape --fixture fixtures/tracer --web-dir web/dist",
+    "test:e2e": "playwright test",
+    "verify": "npm run typecheck && npm run build && go test ./... && go vet ./... && go build ./... && npm run test:e2e"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.7.3",
+    "vite": "6.4.3"
+  }
+}
