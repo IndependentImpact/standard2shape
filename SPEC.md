@@ -20,6 +20,18 @@ The primary user. A domain expert responsible for defining the standard's canoni
 
 A specialist who reviews proposed canonical-shape changes for semantic and graph-model correctness.
 
+## Confirmed standard, indicator, and methodology boundary
+
+The model keeps three normative concepts separate:
+
+- an **indicator** is the domain unit that is measured, quantified, or reported, including its canonical meaning and applicable measurement unit or dimension;
+- a **methodology** targets an indicator and defines how it is determined, including the methodology's semantic and quantitative applicability conditions, required inputs, calculations, and evidence; and
+- a **standard** authorizes indicators and methodologies and defines the normative document structure, requirements, and guidance governing their use.
+
+A standard authorization references an indicator or methodology; it does not absorb or redefine it. Likewise, applicability conditions belong to the methodology, not to its target indicator or to a generic document-validation layer. Executable packages and assessments must preserve these authority and provenance boundaries.
+
+The required granularity of authorization—including whether a standard authorizes exact indicator–methodology version pairings or independently authorizes compatible versions—remains an open governance decision.
+
 ## Confirmed unit of authorship
 
 The author works on an **ordered shape bundle** representing one complete complex document or form, for example a PDD or monitoring report. The bundle may span multiple source files, but it is understood and validated as one coherent document definition.
@@ -49,7 +61,7 @@ If two uses require different constraints, they must reference distinct canonica
 
 ## Confirmed applicability model
 
-Applicability is represented by first-class **applicability requirements**, each carrying canonical guidance and one of two evaluation models:
+Each methodology's applicability conditions are represented by first-class **applicability requirements**, each carrying canonical guidance and one of two evaluation models:
 
 - a **semantic requirement** is defined by SHACL and an explicit reasoning profile, including required preprocessing such as SKOS hierarchy materialisation; and
 - a **quantitative requirement** is an authoritative structured definition over typed inputs, units, thresholds, and formulas.
@@ -76,6 +88,8 @@ Canonical guidance and supplemental guidance are separate content channels. A co
 - cardinality and value constraints;
 - canonical document structure and document order;
 - validation and review of proposed semantic changes.
+
+It must preserve the separate authority of standards, indicators, and methodologies. Authoring or executing a standard package must not silently turn referenced indicator definitions or methodology applicability conditions into standard-owned rules.
 
 `shape2form` remains downstream and owns form compilation, rendering, previews, and presentation-authoring workflows. UI presentation annotations are not canonical-shape edits and remain separate from this product.
 
@@ -118,6 +132,8 @@ These have not yet been confirmed:
 - How should nested structures, reusable sections, and cross-file references appear in the UI?
 - What RDF vocabulary and serialization represent quantitative definitions, evaluation bindings, reasoning profiles, test vectors, and applicability assessments?
 - What validation levels are required before save, review, and publication?
+- Does a standard authorize exact compatible indicator–methodology version pairings, or authorize indicator and methodology versions independently?
+- Which repository or release process publishes each normative package, and which component assembles them for execution without changing their ownership?
 - Is the output an in-place source edit, a generated patch, a branch, or a pull request?
 - How should unsupported advanced SHACL and SHACL-SPARQL constructs be preserved?
 - What relationship should the editor have to a live `shape2form` preview?

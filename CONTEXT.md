@@ -12,6 +12,22 @@ _Avoid_: Form designer, RDF user
 An RDF or ontology specialist who reviews canonical-shape changes for semantic and graph-model correctness.
 _Avoid_: Approver, technical user
 
+**Standard**:
+A normative governance instrument that authorizes indicators and methodologies and defines the document structures, requirements, and guidance under which they may be used.
+_Avoid_: Methodology, indicator, validation bundle
+
+**Indicator**:
+The domain unit targeted by a methodology: the canonical definition of what is measured, quantified, or reported, including its meaning and applicable measurement unit or dimension.
+_Avoid_: Methodology result value, formula, applicability condition
+
+**Methodology**:
+A canonical procedure for determining an indicator, including its semantic and quantitative applicability conditions, required inputs, calculations, and evidence requirements.
+_Avoid_: Standard, indicator, evaluator implementation
+
+**Standard Authorization**:
+A traceable normative statement that a standard permits an identified indicator or methodology to be used. Authorization does not transfer ownership of the indicator or methodology definition into the standard.
+_Avoid_: Definition, copy, import
+
 **Ordered Shape Bundle**:
 An ordered collection of canonical SHACL shapes that together define the data requirements of one complete complex document or form.
 _Avoid_: Form, Turtle file, schema file
@@ -53,7 +69,7 @@ Canonical context owned by a document placement, such as applicability guidance,
 _Avoid_: Constraint override, UI context
 
 **Applicability Requirement**:
-A canonical rule that must be satisfied before a methodology, document section, or requirement applies.
+A canonical semantic or quantitative rule owned by a methodology that must be satisfied before that methodology may be used for its target indicator.
 _Avoid_: Visibility rule, UI condition
 
 **Semantic Requirement**:
