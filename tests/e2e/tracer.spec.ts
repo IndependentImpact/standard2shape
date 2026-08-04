@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("opens, validates, previews, changes, patches, and reloads the local bundle", async ({ page }) => {
+test("opens, validates, previews, changes, patches, and reloads the local bundle", async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -21,7 +21,7 @@ test("opens, validates, previews, changes, patches, and reloads the local bundle
   await expect(page.getByText("2/2 expected", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "SHACL-SPARQL" })).toBeVisible();
 
-  const nextGuidance = "Explain the project purpose, location, and intended outcomes for an independent reviewer.";
+  const nextGuidance = `Explain the project purpose, location, and intended outcomes for an independent reviewer (${testInfo.project.name} verification).`;
   const guidance = page.getByLabel("Canonical guidance");
   await guidance.fill(nextGuidance);
   await expect(page.getByText("Unsaved semantic change")).toBeVisible();
