@@ -1,0 +1,150 @@
+{
+  "assessmentVersion": "0.1",
+  "package": {
+    "id": "https://example.org/standards/demo/packages/0.1.0",
+    "version": "0.1.0",
+    "digest": "sha256:b9a3375d7ccef650951dc513a2ba5fb97673e3d7473ae1f070f3d7386c12fbfb"
+  },
+  "reasoningProfile": {
+    "id": "https://example.org/standard/NoEntailmentProfile",
+    "version": "0.1.0"
+  },
+  "evaluator": {
+    "id": "https://standard2shape.dev/evaluators/local-tracer",
+    "version": "0.1.0"
+  },
+  "startedAt": "2026-08-11T08:00:00Z",
+  "completedAt": "2026-08-11T08:00:02Z",
+  "results": [
+    {
+      "check": "syntax",
+      "outcome": "conforms",
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "document.ttl",
+          "digest": "sha256:c385ab12f553894dbafcd27906f1e3cef507eb7c134d8d37be81363c61460eab"
+        },
+        {
+          "path": "references.ttl",
+          "digest": "sha256:8b2bd8801db2b634dec043b2951ad73b38b289c384906c987b80250cf26d1fab"
+        },
+        {
+          "path": "shapes.ttl",
+          "digest": "sha256:622c04b5b919b2caadd9af104539a61f2ee8a885dacee512c67d710601fe1115"
+        }
+      ]
+    },
+    {
+      "check": "package-structure",
+      "outcome": "conforms",
+      "violations": [],
+      "evidenceChecked": []
+    },
+    {
+      "check": "shacl",
+      "outcome": "conforms",
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "data-valid.ttl",
+          "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f"
+        }
+      ]
+    },
+    {
+      "check": "reasoning-profile",
+      "outcome": "conforms",
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "references.ttl",
+          "digest": "sha256:8b2bd8801db2b634dec043b2951ad73b38b289c384906c987b80250cf26d1fab"
+        }
+      ]
+    },
+    {
+      "check": "semantic-applicability",
+      "outcome": "conforms",
+      "requirement": {
+        "id": "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope",
+        "version": "1.0.0"
+      },
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "data-valid.ttl",
+          "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f"
+        }
+      ]
+    },
+    {
+      "check": "quantitative-applicability",
+      "outcome": "unsupported",
+      "requirement": {
+        "id": "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield",
+        "version": "1.0.0"
+      },
+      "message": "no quantitative evaluation binding is available to this evaluator",
+      "violations": [],
+      "evidenceChecked": []
+    },
+    {
+      "check": "test-vectors",
+      "outcome": "conforms",
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "data-valid.ttl",
+          "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f"
+        }
+      ],
+      "vector": {
+        "id": "https://example.org/standards/demo/tests/complete-project",
+        "expected": "conforms",
+        "actual": "conforms"
+      }
+    },
+    {
+      "check": "test-vectors",
+      "outcome": "conforms",
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "data-boundary.ttl",
+          "digest": "sha256:987705b383e3c024872a46a1940919d4ee19ebcc240555fc3c46de46f3470a10"
+        }
+      ],
+      "vector": {
+        "id": "https://example.org/standards/demo/tests/single-character-title",
+        "expected": "conforms",
+        "actual": "conforms"
+      }
+    },
+    {
+      "check": "test-vectors",
+      "outcome": "conforms",
+      "violations": [
+        {
+          "requirement": "https://example.org/standard/ProjectTitleShape",
+          "severity": "violation",
+          "message": "a project requires exactly one title",
+          "focus": "https://example.org/standard/ProjectWithoutTitle",
+          "path": "https://example.org/standard/title",
+          "source": "data-invalid.ttl"
+        }
+      ],
+      "evidenceChecked": [
+        {
+          "path": "data-invalid.ttl",
+          "digest": "sha256:0ede0b49823df17f7d5d47f19e1265001b4059c0f9ae81cd2322f8a489e00df7"
+        }
+      ],
+      "vector": {
+        "id": "https://example.org/standards/demo/tests/missing-title",
+        "expected": "non-conforms",
+        "actual": "non-conforms"
+      }
+    }
+  ]
+}

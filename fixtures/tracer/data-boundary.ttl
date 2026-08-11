@@ -1,0 +1,4 @@
+@prefix ex: <https://example.org/standard/> .
+
+ex:ProjectSingleCharacterTitle a ex:Project ;
+  ex:title "X" .

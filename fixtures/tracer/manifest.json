@@ -82,6 +82,13 @@
       "expected": "conforms"
     },
     {
+      "id": "https://example.org/standards/demo/tests/single-character-title",
+      "name": "project title at the minimum non-blank length",
+      "path": "data-boundary.ttl",
+      "digest": "sha256:987705b383e3c024872a46a1940919d4ee19ebcc240555fc3c46de46f3470a10",
+      "expected": "conforms"
+    },
+    {
       "id": "https://example.org/standards/demo/tests/missing-title",
       "name": "project missing required title",
       "path": "data-invalid.ttl",

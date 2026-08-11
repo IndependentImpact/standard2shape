@@ -1,0 +1,25 @@
+{
+  "suiteVersion": "0.1",
+  "package": {
+    "id": "https://example.org/standards/demo/packages/0.1.0",
+    "version": "0.1.0",
+    "digest": "sha256:b9a3375d7ccef650951dc513a2ba5fb97673e3d7473ae1f070f3d7386c12fbfb"
+  },
+  "vectors": [
+    {
+      "id": "https://example.org/standards/demo/tests/complete-project",
+      "category": "valid",
+      "expected": "non-conforms"
+    },
+    {
+      "id": "https://example.org/standards/demo/tests/missing-title",
+      "category": "invalid",
+      "expected": "non-conforms"
+    },
+    {
+      "id": "https://example.org/standards/demo/tests/single-character-title",
+      "category": "boundary",
+      "expected": "conforms"
+    }
+  ]
+}

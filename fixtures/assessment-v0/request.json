@@ -1,0 +1,31 @@
+{
+  "requestVersion": "0.1",
+  "package": {
+    "id": "https://example.org/standards/demo/packages/0.1.0",
+    "version": "0.1.0",
+    "digest": "sha256:b9a3375d7ccef650951dc513a2ba5fb97673e3d7473ae1f070f3d7386c12fbfb"
+  },
+  "reasoningProfile": {
+    "id": "https://example.org/standard/NoEntailmentProfile",
+    "version": "0.1.0"
+  },
+  "checks": [
+    "syntax",
+    "package-structure",
+    "shacl",
+    "reasoning-profile",
+    "semantic-applicability",
+    "quantitative-applicability",
+    "test-vectors"
+  ],
+  "evidence": [
+    {
+      "path": "data-valid.ttl",
+      "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f"
+    }
+  ],
+  "requirements": [
+    "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield",
+    "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope"
+  ]
+}

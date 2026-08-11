@@ -18,7 +18,7 @@ test("opens, validates, previews, changes, patches, and reloads the local bundle
   await expect(sources.getByText("shapes.ttl", { exact: true })).toBeVisible();
   await expect(sources.getByText("references.ttl", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "shape2form preview" })).toBeVisible();
-  await expect(page.getByText("2/2 expected", { exact: true })).toBeVisible();
+  await expect(page.getByText("3/3 expected", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "SHACL-SPARQL" })).toBeVisible();
 
   const nextGuidance = `Explain the project purpose, location, and intended outcomes for an independent reviewer (${testInfo.project.name} verification).`;

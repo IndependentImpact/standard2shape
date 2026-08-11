@@ -1,0 +1,30 @@
+{
+  "assessmentVersion": "0.1",
+  "package": {
+    "id": "https://example.org/standards/demo/packages/0.1.0",
+    "version": "0.1.0",
+    "digest": "sha256:b9a3375d7ccef650951dc513a2ba5fb97673e3d7473ae1f070f3d7386c12fbfb"
+  },
+  "reasoningProfile": {
+    "id": "https://example.org/standard/NoEntailmentProfile",
+    "version": "0.1.0"
+  },
+  "evaluator": {
+    "id": "https://standard2shape.dev/evaluators/local-tracer",
+    "version": "0.1.0"
+  },
+  "startedAt": "2026-08-11T08:11:00Z",
+  "completedAt": "2026-08-11T08:11:01Z",
+  "results": [
+    {
+      "check": "quantitative-applicability",
+      "outcome": "unsupported",
+      "requirement": {
+        "id": "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield",
+        "version": "1.0.0"
+      },
+      "violations": [],
+      "evidenceChecked": []
+    }
+  ]
+}

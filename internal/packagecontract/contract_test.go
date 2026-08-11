@@ -31,7 +31,7 @@ func TestOpenValidTracerPackage(t *testing.T) {
 	if len(pkg.Manifest.DocumentRoots) != 1 || len(pkg.Manifest.CanonicalShapes) != 2 {
 		t.Fatalf("roots=%#v shapes=%#v", pkg.Manifest.DocumentRoots, pkg.Manifest.CanonicalShapes)
 	}
-	if len(pkg.Manifest.Artifacts) != 3 || len(pkg.Manifest.References) != 2 || len(pkg.Manifest.ConformanceVectors) != 2 {
+	if len(pkg.Manifest.Artifacts) != 3 || len(pkg.Manifest.References) != 2 || len(pkg.Manifest.ConformanceVectors) != 3 {
 		t.Fatalf("artifacts=%d references=%d vectors=%d", len(pkg.Manifest.Artifacts), len(pkg.Manifest.References), len(pkg.Manifest.ConformanceVectors))
 	}
 	if pkg.StatementCount == 0 {
