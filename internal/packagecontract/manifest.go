@@ -133,6 +133,11 @@ func Normalize(manifest Manifest) ([]byte, error) {
 }
 
 func decodeManifest(data []byte) (Manifest, error) {
+	if json.Valid(data) {
+		if err := contractError(checkExactFields(data)); err != nil {
+			return Manifest{}, err
+		}
+	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	var manifest Manifest
@@ -145,9 +150,6 @@ func decodeManifest(data []byte) (Manifest, error) {
 			err = errors.New("multiple JSON values")
 		}
 		return Manifest{}, contractError([]Diagnostic{diagnostic("manifest.invalid", "manifest.json", "invalid trailing content: %v", err)})
-	}
-	if err := contractError(checkExactFields(data)); err != nil {
-		return Manifest{}, err
 	}
 	return manifest, nil
 }

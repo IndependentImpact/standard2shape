@@ -262,13 +262,21 @@ func validateSection(triples []sourcedTriple, section, parent, fallbackSource st
 	active[section] = true
 	defer delete(active, section)
 	diagnostics = append(diagnostics, requireTypedEntityAnySource(triples, section, s2sSection, "graph.document_section.invalid")...)
+	if hasType(triples, section, s2sPlacement) {
+		diagnostics = append(diagnostics, diagnostic("graph.document_member.invalid", source, "%s cannot be both a DocumentSection and a DocumentPlacement", section))
+	}
 	children := objectValues(triples, section, s2sMember)
 	diagnostics = append(diagnostics, validateSiblingPositions(triples, source, children)...)
 	for _, child := range children {
+		isSection := hasType(triples, child, s2sSection)
+		isPlacement := hasType(triples, child, s2sPlacement)
 		switch {
-		case hasType(triples, child, s2sSection):
+		case isSection && isPlacement:
+			visited[child] = true
+			diagnostics = append(diagnostics, diagnostic("graph.document_member.invalid", source, "member %s cannot be both a DocumentSection and a DocumentPlacement", child))
+		case isSection:
 			diagnostics = append(diagnostics, validateSection(triples, child, section, source, shapeIDs, parents, visited, active)...)
-		case hasType(triples, child, s2sPlacement):
+		case isPlacement:
 			diagnostics = append(diagnostics, claimParent(parents, child, section, source)...)
 			visited[child] = true
 			diagnostics = append(diagnostics, validatePlacement(triples, child, source, shapeIDs)...)

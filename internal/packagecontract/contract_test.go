@@ -133,6 +133,12 @@ func TestManifestFieldNamesAreExact(t *testing.T) {
 		t.Fatalf("expected exact-case field diagnostic, got %v", err)
 	}
 
+	unknown := bytes.Replace(manifestData, []byte(`"manifestVersion":`), []byte("\"foo\": true,\n  \"manifestVersion\":"), 1)
+	_, err = decodeManifest(unknown)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.field.unknown") {
+		t.Fatalf("expected unknown field diagnostic, got %v", err)
+	}
+
 	duplicated := bytes.Replace(manifestData, []byte(`"version": "0.1.0",`), []byte("\"version\": \"0.1.0\",\n  \"version\": \"0.1.0\","), 1)
 	_, err = decodeManifest(duplicated)
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.field.duplicate") {
@@ -162,6 +168,26 @@ func TestSymlinkedMemberCannotEscapePackageRoot(t *testing.T) {
 	var contractErr *ContractError
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "package.member.escape") {
 		t.Fatalf("expected escaping-member diagnostic, got %v", err)
+	}
+}
+
+func TestDualTypedDocumentMembersAreRejected(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	documentPath := filepath.Join(root, "document.ttl")
+	document, err := os.ReadFile(documentPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	document = append(document, []byte("\n<https://example.org/standard/ProjectDetailsPlacement> a <https://standard2shape.dev/vocab#DocumentSection> .\n")...)
+	if err := os.WriteFile(documentPath, document, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "document.ttl", document)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.document_member.invalid") {
+		t.Fatalf("expected dual-typed member diagnostic, got %v", err)
 	}
 }
 

@@ -27,7 +27,7 @@ All paths are normalized package-relative POSIX paths: no backslashes and no lea
 
 ## Document vocabulary
 
-An `s2s:OrderedShapeBundle` has one or more `s2s:hasRootSection` links to `s2s:DocumentSection` nodes. A section contains ordered child sections or `s2s:DocumentPlacement` nodes through `s2s:member`. Every child has one positive `s2s:position`, unique among its siblings. A placement has one `s2s:shape` link to a reusable `sh:NodeShape`; the shape is not copied into the tree. Every typed `s2s:DocumentSection` and `s2s:DocumentPlacement` must be reachable from a declared document root; orphan document nodes are rejected because they would escape tree validation.
+An `s2s:OrderedShapeBundle` has one or more `s2s:hasRootSection` links to `s2s:DocumentSection` nodes. A section contains ordered child sections or `s2s:DocumentPlacement` nodes through `s2s:member`. Every child has one positive `s2s:position`, unique among its siblings. A placement has one `s2s:shape` link to a reusable `sh:NodeShape`; the shape is not copied into the tree. Every typed `s2s:DocumentSection` and `s2s:DocumentPlacement` must be reachable from a declared document root; orphan document nodes are rejected because they would escape tree validation. The two classes are disjoint: a node typed as both is rejected.
 
 Document-node guidance uses `s2s:canonicalGuidance`. Canonical guidance on SHACL node and property shapes uses `sh:description`, matching the downstream shape2form canonical channel. Canonical document order is expressed only by `s2s:position`; `https://shape2form.dev/vocab/ui#order` is a presentation annotation and is rejected from canonical source artifacts.
 
@@ -67,6 +67,7 @@ Contract errors expose a stable code, package-relative location, and explanatory
 - `graph.placement.shape_invalid` — a placement does not reference exactly one declared reusable shape;
 - `graph.document_order.invalid` — sibling positions are absent, invalid, or duplicated;
 - `graph.document_node.orphan` — a typed document node is unreachable from every declared root;
+- `graph.document_member.invalid` — a member is neither, or both, a DocumentSection and a DocumentPlacement;
 - `graph.presentation_order.forbidden` — canonical RDF contains shape2form presentation order;
 - `graph.import.mismatch` — graph and manifest import declarations differ;
 - `graph.reference.invalid` — a pinned external reference does not match its RDF reference record.

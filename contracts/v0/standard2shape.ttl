@@ -21,6 +21,7 @@ s2s:DocumentNode a rdfs:Class ;
 
 s2s:DocumentSection a rdfs:Class ;
   rdfs:subClassOf s2s:DocumentNode ;
+  owl:disjointWith s2s:DocumentPlacement ;
   rdfs:label "Document section"@en .
 
 s2s:DocumentPlacement a rdfs:Class ;
