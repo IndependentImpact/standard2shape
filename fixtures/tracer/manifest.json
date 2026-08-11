@@ -17,6 +17,10 @@
     {
       "id": "https://example.org/standard/ProjectShape",
       "source": "shapes.ttl"
+    },
+    {
+      "id": "https://example.org/standard/ProjectTitleShape",
+      "source": "shapes.ttl"
     }
   ],
   "artifacts": [

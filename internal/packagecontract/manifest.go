@@ -110,8 +110,8 @@ func Normalize(manifest Manifest) ([]byte, error) {
 	}
 	normalized := manifest
 	normalized.Artifacts = append([]SourceArtifact(nil), manifest.Artifacts...)
-	normalized.Imports = append([]ImportReference(nil), manifest.Imports...)
-	normalized.References = append([]ArtifactReference(nil), manifest.References...)
+	normalized.Imports = append([]ImportReference{}, manifest.Imports...)
+	normalized.References = append([]ArtifactReference{}, manifest.References...)
 	normalized.DocumentRoots = append([]GraphEntity(nil), manifest.DocumentRoots...)
 	normalized.CanonicalShapes = append([]GraphEntity(nil), manifest.CanonicalShapes...)
 	normalized.ConformanceVectors = append([]ConformanceVector(nil), manifest.ConformanceVectors...)
@@ -169,6 +169,12 @@ func validateManifest(manifest Manifest) []Diagnostic {
 	}
 	if len(manifest.ConformanceVectors) == 0 {
 		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "conformanceVectors", "at least one conformance vector is required"))
+	}
+	if manifest.Imports == nil {
+		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "imports", "imports must be an array, possibly empty"))
+	}
+	if manifest.References == nil {
+		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "references", "references must be an array, possibly empty"))
 	}
 
 	artifactByPath := map[string]SourceArtifact{}

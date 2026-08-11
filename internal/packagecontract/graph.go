@@ -13,6 +13,7 @@ const (
 	rdfType            = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 	owlImports         = "http://www.w3.org/2002/07/owl#imports"
 	shNodeShape        = "http://www.w3.org/ns/shacl#NodeShape"
+	shPropertyShape    = "http://www.w3.org/ns/shacl#PropertyShape"
 	uiOrder            = "https://shape2form.dev/vocab/ui#order"
 	s2sStandardRelease = "https://standard2shape.dev/vocab#StandardRelease"
 	s2sBundle          = "https://standard2shape.dev/vocab#OrderedShapeBundle"
@@ -317,8 +318,8 @@ func validatePlacement(triples []sourcedTriple, placement, fallbackSource string
 	}
 	diagnostics := requireTypedEntityAnySource(triples, placement, s2sPlacement, "graph.document_placement.invalid")
 	shapes := objectValues(triples, placement, s2sShape)
-	if len(shapes) != 1 || !shapeIDs[first(shapes)] {
-		diagnostics = append(diagnostics, diagnostic("graph.placement.shape_invalid", source, "placement %s must reference exactly one declared canonical shape", placement))
+	if len(shapes) != 1 || !shapeIDs[first(shapes)] || !hasType(triples, first(shapes), shNodeShape) {
+		diagnostics = append(diagnostics, diagnostic("graph.placement.shape_invalid", source, "placement %s must reference exactly one declared canonical node shape", placement))
 	}
 	return diagnostics
 }
@@ -328,14 +329,36 @@ func validateShapes(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	declared := map[string]bool{}
 	for _, shape := range manifest.CanonicalShapes {
 		declared[shape.ID] = true
-		diagnostics = append(diagnostics, requireTypedEntity(triples, shape.ID, shNodeShape, shape.Source, "graph.canonical_shape.invalid")...)
+		diagnostics = append(diagnostics, requireShapeEntity(triples, shape)...)
 	}
-	for _, subject := range subjectsWith(triples, rdfType, shNodeShape) {
-		if !declared[subject] {
-			diagnostics = append(diagnostics, diagnostic("graph.canonical_shape.undeclared", sourceForType(triples, subject, shNodeShape), "canonical node shape %s is not declared by the manifest", subject))
+	for _, typeIRI := range []string{shNodeShape, shPropertyShape} {
+		for _, subject := range subjectsWith(triples, rdfType, typeIRI) {
+			if !declared[subject] {
+				diagnostics = append(diagnostics, diagnostic("graph.canonical_shape.undeclared", sourceForType(triples, subject, typeIRI), "canonical shape %s is not declared by the manifest", subject))
+			}
 		}
 	}
 	return diagnostics
+}
+
+func requireShapeEntity(triples []sourcedTriple, shape GraphEntity) []Diagnostic {
+	matches := 0
+	wrongSource := false
+	for _, statement := range triples {
+		if statement.Triple.Subj.String() != shape.ID || statement.Triple.Pred.String() != rdfType {
+			continue
+		}
+		object := statement.Triple.Obj.String()
+		if object != shNodeShape && object != shPropertyShape {
+			continue
+		}
+		matches++
+		wrongSource = wrongSource || statement.Source != shape.Source
+	}
+	if matches != 1 || wrongSource {
+		return []Diagnostic{diagnostic("graph.canonical_shape.invalid", shape.Source, "%s must have exactly one sh:NodeShape or sh:PropertyShape type statement owned by %s", shape.ID, shape.Source)}
+	}
+	return nil
 }
 
 func requireTypedEntity(triples []sourcedTriple, subject, typeIRI, source, code string) []Diagnostic {

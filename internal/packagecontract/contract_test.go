@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestOpenValidTracerPackage(t *testing.T) {
 	if pkg.Manifest.StandardRelease.ID != "https://example.org/standard/DemoStandardRelease" {
 		t.Fatalf("standard release = %#v", pkg.Manifest.StandardRelease)
 	}
-	if len(pkg.Manifest.DocumentRoots) != 1 || len(pkg.Manifest.CanonicalShapes) != 1 {
+	if len(pkg.Manifest.DocumentRoots) != 1 || len(pkg.Manifest.CanonicalShapes) != 2 {
 		t.Fatalf("roots=%#v shapes=%#v", pkg.Manifest.DocumentRoots, pkg.Manifest.CanonicalShapes)
 	}
 	if len(pkg.Manifest.Artifacts) != 3 || len(pkg.Manifest.References) != 2 || len(pkg.Manifest.ConformanceVectors) != 2 {
@@ -60,6 +61,111 @@ func TestManifestNormalizationIsDeterministic(t *testing.T) {
 	}
 	if !bytes.Equal(pkg.NormalizedManifest, normalized) {
 		t.Fatalf("normalization depends on input order:\nfirst:\n%s\nsecond:\n%s", pkg.NormalizedManifest, normalized)
+	}
+}
+
+func TestNormalizedManifestKeepsEmptyCollections(t *testing.T) {
+	pkg, err := Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	manifest := pkg.Manifest
+	manifest.Imports = []ImportReference{}
+	manifest.References = []ArtifactReference{}
+	normalized, err := Normalize(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roundTripped, err := decodeManifest(normalized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if roundTripped.Imports == nil || roundTripped.References == nil {
+		t.Fatalf("normalization drops required empty arrays:\n%s", normalized)
+	}
+	if diagnostics := validateManifest(roundTripped); len(diagnostics) != 0 {
+		t.Fatalf("normalized manifest violates its own contract: %#v", diagnostics)
+	}
+}
+
+func TestManifestRequiresImportAndReferenceArrays(t *testing.T) {
+	manifestData, err := os.ReadFile(filepath.Join("..", "..", "fixtures", "tracer", "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(manifestData, &fields); err != nil {
+		t.Fatal(err)
+	}
+	delete(fields, "imports")
+	fields["references"] = json.RawMessage("null")
+	stripped, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	manifest, err := decodeManifest(stripped)
+	if err != nil {
+		t.Fatal(err)
+	}
+	diagnostics := validateManifest(manifest)
+	for _, location := range []string{"imports", "references"} {
+		found := slices.ContainsFunc(diagnostics, func(d Diagnostic) bool {
+			return d.Code == "manifest.field.required" && d.Location == location
+		})
+		if !found {
+			t.Fatalf("missing %s diagnostic %q in %#v", location, "manifest.field.required", diagnostics)
+		}
+	}
+}
+
+func TestSchemaPathPatternMatchesVerifier(t *testing.T) {
+	schemaData, err := os.ReadFile(filepath.Join("..", "..", "contracts", "v0", "package-manifest.schema.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var schema struct {
+		Defs struct {
+			Path struct {
+				Pattern string `json:"pattern"`
+			} `json:"path"`
+		} `json:"$defs"`
+	}
+	if err := json.Unmarshal(schemaData, &schema); err != nil {
+		t.Fatal(err)
+	}
+	pattern, err := regexp.Compile(schema.Defs.Path.Pattern)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		path  string
+		valid bool
+	}{
+		{path: "shapes.ttl", valid: true},
+		{path: "graphs/shapes.ttl", valid: true},
+		{path: ".hidden.ttl", valid: true},
+		{path: "..archive.ttl", valid: true},
+		{path: "", valid: false},
+		{path: ".", valid: false},
+		{path: "..", valid: false},
+		{path: "./shapes.ttl", valid: false},
+		{path: "../shapes.ttl", valid: false},
+		{path: "graphs/./shapes.ttl", valid: false},
+		{path: "graphs/../shapes.ttl", valid: false},
+		{path: "graphs//shapes.ttl", valid: false},
+		{path: "graphs/shapes.ttl/", valid: false},
+		{path: "/shapes.ttl", valid: false},
+		{path: "graphs\\shapes.ttl", valid: false},
+	}
+	for _, test := range tests {
+		schemaValid := pattern.MatchString(test.path)
+		verifierValid := len(validatePath("path", test.path)) == 0
+		if schemaValid != test.valid || verifierValid != test.valid {
+			t.Errorf("path %q: expected valid=%t, schema=%t, verifier=%t", test.path, test.valid, schemaValid, verifierValid)
+		}
 	}
 }
 
@@ -121,6 +227,26 @@ func TestCanonicalNodeShapesMustBeDeclared(t *testing.T) {
 		t.Fatal(err)
 	}
 	shapes = append(shapes, []byte("\n<https://example.org/standard/HiddenShape> a <http://www.w3.org/ns/shacl#NodeShape> .\n")...)
+	if err := os.WriteFile(shapesPath, shapes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "shapes.ttl", shapes)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.canonical_shape.undeclared") {
+		t.Fatalf("expected undeclared canonical-shape diagnostic, got %v", err)
+	}
+}
+
+func TestCanonicalPropertyShapesMustBeDeclared(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	shapesPath := filepath.Join(root, "shapes.ttl")
+	shapes, err := os.ReadFile(shapesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shapes = append(shapes, []byte("\n<https://example.org/standard/HiddenTitleShape> a <http://www.w3.org/ns/shacl#PropertyShape> .\n")...)
 	if err := os.WriteFile(shapesPath, shapes, 0o644); err != nil {
 		t.Fatal(err)
 	}

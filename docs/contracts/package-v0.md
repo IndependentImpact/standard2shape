@@ -17,11 +17,11 @@ The JSON manifest inventories package members and roots. RDF remains authoritati
 
 ## Identity and membership
 
-`manifestVersion` selects this contract and is currently exactly `0.1`. `id` and `version` identify the package; `standardRelease` identifies the standard-owned release represented by it. Document roots and canonical shape roots are named RDF graph entities and declare the source artifact that owns their defining type statement.
+`manifestVersion` selects this contract and is currently exactly `0.1`. `id` and `version` identify the package; `standardRelease` identifies the standard-owned release represented by it. Document roots and canonical shape roots are named RDF graph entities and declare the source artifact that owns their defining type statement. `canonicalShapes` inventories every canonical shape, `sh:NodeShape` and `sh:PropertyShape` alike; a shape typed in a canonical source but absent from the inventory is rejected. Document placements may reference only inventoried node shapes.
 
 Every local canonical artifact records a package-relative path, one role, the `text/turtle` media type, and a SHA-256 digest of its exact bytes. Conformance vectors are local members with the same path and digest guarantees but are separated from canonical artifacts because they are evidence, not normative source graphs.
 
-All paths are lexical package-relative POSIX paths. On an indicator, methodology, or import entry, `source` identifies the standard-owned file containing the reference declaration—not the source or ownership of the external artifact. A pinned reference does not itself constitute a standard authorization; every authorization must target a declared reference, but references may also exist for context or dependency resolution. Remote import resolution is disabled: each `owl:imports` statement must have a matching `reference-only` manifest declaration. Consumers verify pinned external references through an approved artifact source; they never infer ownership from inclusion in a standard manifest.
+All paths are normalized package-relative POSIX paths: no backslashes and no leading, trailing, empty, `.`, or `..` segments. The JSON Schema path pattern and the verifier accept exactly the same paths. On an indicator, methodology, or import entry, `source` identifies the standard-owned file containing the reference declaration—not the source or ownership of the external artifact. A pinned reference does not itself constitute a standard authorization; every authorization must target a declared reference, but references may also exist for context or dependency resolution. Remote import resolution is disabled: each `owl:imports` statement must have a matching `reference-only` manifest declaration. Consumers verify pinned external references through an approved artifact source; they never infer ownership from inclusion in a standard manifest.
 
 ## Document vocabulary
 
@@ -69,7 +69,7 @@ Messages may become clearer without breaking compatibility; consumers must key a
 
 ## Normalization and versioning
 
-Normalization sorts all set-like manifest arrays by stable identity and serializes the typed manifest with two-space JSON indentation and one trailing newline. It never rewrites RDF. Equivalent manifests therefore normalize to identical bytes regardless of input array order.
+Normalization sorts all set-like manifest arrays by stable identity and serializes the typed manifest with two-space JSON indentation and one trailing newline. Every collection is always present: `imports` and `references` may be empty but never omitted or `null`, and normalization serializes them as `[]`, so a normalized manifest always satisfies the published JSON Schema. It never rewrites RDF. Equivalent manifests therefore normalize to identical bytes regardless of input array order.
 
 Manifest `0.x` versions are experimental and require exact consumer support; unknown fields and unsupported manifest versions are rejected. After `1.0`, a major manifest-version change will indicate an incompatible contract, while additive optional fields may use a minor contract version. Package `version` follows semantic versioning independently: a breaking normative model change increments major, an additive normative change increments minor, and guidance, metadata, or non-breaking corrections increment patch. Any byte change updates the affected member digest and any semantic change requires a new immutable standard release.
 
