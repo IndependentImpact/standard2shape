@@ -19,13 +19,15 @@ The JSON manifest inventories package members and roots. RDF remains authoritati
 
 `manifestVersion` selects this contract and is currently exactly `0.1`. `id` and `version` identify the package; `standardRelease` identifies the standard-owned release represented by it. Document roots and canonical shape roots are named RDF graph entities and declare the source artifact that owns their defining type statement. `canonicalShapes` inventories every canonical shape, `sh:NodeShape` and `sh:PropertyShape` alike; a shape typed in a canonical source but absent from the inventory is rejected. Document placements may reference only inventoried node shapes.
 
+Manifest field names are matched exactly: differently cased or duplicate fields are rejected, matching the closed JSON Schema. Members are read from within the package root; a member that resolves outside it through a symlink is rejected.
+
 Every local canonical artifact records a package-relative path, one role, the `text/turtle` media type, and a SHA-256 digest of its exact bytes. Conformance vectors are local members with the same path and digest guarantees but are separated from canonical artifacts because they are evidence, not normative source graphs.
 
 All paths are normalized package-relative POSIX paths: no backslashes and no leading, trailing, empty, `.`, or `..` segments. The JSON Schema path pattern and the verifier accept exactly the same paths. On an indicator, methodology, or import entry, `source` identifies the standard-owned file containing the reference declaration—not the source or ownership of the external artifact. A pinned reference does not itself constitute a standard authorization; every authorization must target a declared reference, but references may also exist for context or dependency resolution. Remote import resolution is disabled: each `owl:imports` statement must have a matching `reference-only` manifest declaration. Consumers verify pinned external references through an approved artifact source; they never infer ownership from inclusion in a standard manifest.
 
 ## Document vocabulary
 
-An `s2s:OrderedShapeBundle` has one or more `s2s:hasRootSection` links to `s2s:DocumentSection` nodes. A section contains ordered child sections or `s2s:DocumentPlacement` nodes through `s2s:member`. Every child has one positive `s2s:position`, unique among its siblings. A placement has one `s2s:shape` link to a reusable `sh:NodeShape`; the shape is not copied into the tree.
+An `s2s:OrderedShapeBundle` has one or more `s2s:hasRootSection` links to `s2s:DocumentSection` nodes. A section contains ordered child sections or `s2s:DocumentPlacement` nodes through `s2s:member`. Every child has one positive `s2s:position`, unique among its siblings. A placement has one `s2s:shape` link to a reusable `sh:NodeShape`; the shape is not copied into the tree. Every typed `s2s:DocumentSection` and `s2s:DocumentPlacement` must be reachable from a declared document root; orphan document nodes are rejected because they would escape tree validation.
 
 Document-node guidance uses `s2s:canonicalGuidance`. Canonical guidance on SHACL node and property shapes uses `sh:description`, matching the downstream shape2form canonical channel. Canonical document order is expressed only by `s2s:position`; `https://shape2form.dev/vocab/ui#order` is a presentation annotation and is rejected from canonical source artifacts.
 
@@ -54,13 +56,17 @@ ex:ProjectDetailsPlacement a s2s:DocumentPlacement ;
 
 Contract errors expose a stable code, package-relative location, and explanatory message. Initial codes include:
 
+- `manifest.field.unknown` — a manifest field is unknown or differently cased;
+- `manifest.field.duplicate` — a manifest field is declared more than once;
 - `package.member.missing` — a declared local member is absent;
 - `package.member.duplicate` — the same member descriptor is declared more than once;
 - `package.member.conflict` — one path is assigned incompatible descriptors or roles;
 - `package.member.digest_mismatch` — local bytes do not match the manifest;
+- `package.member.escape` — a member resolves outside the package root;
 - `graph.document_root.invalid` — a declared root is absent, duplicated, mistyped, or defined in another source;
 - `graph.placement.shape_invalid` — a placement does not reference exactly one declared reusable shape;
 - `graph.document_order.invalid` — sibling positions are absent, invalid, or duplicated;
+- `graph.document_node.orphan` — a typed document node is unreachable from every declared root;
 - `graph.presentation_order.forbidden` — canonical RDF contains shape2form presentation order;
 - `graph.import.mismatch` — graph and manifest import declarations differ;
 - `graph.reference.invalid` — a pinned external reference does not match its RDF reference record.

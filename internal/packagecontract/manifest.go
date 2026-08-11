@@ -146,7 +146,131 @@ func decodeManifest(data []byte) (Manifest, error) {
 		}
 		return Manifest{}, contractError([]Diagnostic{diagnostic("manifest.invalid", "manifest.json", "invalid trailing content: %v", err)})
 	}
+	if err := contractError(checkExactFields(data)); err != nil {
+		return Manifest{}, err
+	}
 	return manifest, nil
+}
+
+type objectSpec map[string]any
+
+type arraySpec struct{ element any }
+
+var (
+	graphEntitySpec     = objectSpec{"id": nil, "source": nil}
+	versionedEntitySpec = objectSpec{"id": nil, "version": nil, "source": nil}
+	manifestSpec        = objectSpec{
+		"manifestVersion":    nil,
+		"id":                 nil,
+		"version":            nil,
+		"standardRelease":    versionedEntitySpec,
+		"documentRoots":      arraySpec{element: graphEntitySpec},
+		"canonicalShapes":    arraySpec{element: graphEntitySpec},
+		"artifacts":          arraySpec{element: objectSpec{"path": nil, "role": nil, "mediaType": nil, "digest": nil}},
+		"imports":            arraySpec{element: objectSpec{"source": nil, "iri": nil, "version": nil, "digest": nil, "policy": nil}},
+		"references":         arraySpec{element: objectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
+		"reasoningProfile":   versionedEntitySpec,
+		"conformanceVectors": arraySpec{element: objectSpec{"id": nil, "name": nil, "path": nil, "digest": nil, "expected": nil}},
+	}
+)
+
+// Go's JSON decoder matches struct fields case-insensitively and lets later
+// duplicate keys overwrite earlier values; the closed schema allows neither.
+func checkExactFields(data []byte) []Diagnostic {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	diagnostics, err := checkSpecValue(decoder, "manifest.json", manifestSpec)
+	if err != nil {
+		diagnostics = append(diagnostics, diagnostic("manifest.invalid", "manifest.json", "cannot inspect manifest fields: %v", err))
+	}
+	return diagnostics
+}
+
+func checkSpecValue(decoder *json.Decoder, location string, spec any) ([]Diagnostic, error) {
+	token, err := decoder.Token()
+	if err != nil {
+		return nil, err
+	}
+	delim, isDelim := token.(json.Delim)
+	switch spec := spec.(type) {
+	case objectSpec:
+		if !isDelim || delim != '{' {
+			return nil, skipOpened(decoder, token)
+		}
+		var diagnostics []Diagnostic
+		seen := map[string]bool{}
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			if err != nil {
+				return diagnostics, err
+			}
+			key := keyToken.(string)
+			child, allowed := spec[key]
+			if !allowed {
+				diagnostics = append(diagnostics, diagnostic("manifest.field.unknown", location, "field %q is not an exact-case v0.1 manifest field", key))
+				if err := skipValue(decoder); err != nil {
+					return diagnostics, err
+				}
+				continue
+			}
+			if seen[key] {
+				diagnostics = append(diagnostics, diagnostic("manifest.field.duplicate", location+"."+key, "field is declared more than once"))
+			}
+			seen[key] = true
+			childDiagnostics, err := checkSpecValue(decoder, location+"."+key, child)
+			diagnostics = append(diagnostics, childDiagnostics...)
+			if err != nil {
+				return diagnostics, err
+			}
+		}
+		_, err := decoder.Token()
+		return diagnostics, err
+	case arraySpec:
+		if !isDelim || delim != '[' {
+			return nil, skipOpened(decoder, token)
+		}
+		var diagnostics []Diagnostic
+		for index := 0; decoder.More(); index++ {
+			childDiagnostics, err := checkSpecValue(decoder, fmt.Sprintf("%s[%d]", location, index), spec.element)
+			diagnostics = append(diagnostics, childDiagnostics...)
+			if err != nil {
+				return diagnostics, err
+			}
+		}
+		_, err := decoder.Token()
+		return diagnostics, err
+	default:
+		return nil, skipOpened(decoder, token)
+	}
+}
+
+func skipValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	return skipOpened(decoder, token)
+}
+
+func skipOpened(decoder *json.Decoder, token json.Token) error {
+	delim, isDelim := token.(json.Delim)
+	if !isDelim || (delim != '{' && delim != '[') {
+		return nil
+	}
+	for depth := 1; depth > 0; {
+		token, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if delim, ok := token.(json.Delim); ok {
+			switch delim {
+			case '{', '[':
+				depth++
+			case '}', ']':
+				depth--
+			}
+		}
+	}
+	return nil
 }
 
 func validateManifest(manifest Manifest) []Diagnostic {
@@ -337,6 +461,9 @@ func readMember(root, relative, expectedDigest string) ([]byte, []Diagnostic) {
 	if err != nil {
 		return nil, []Diagnostic{diagnostic("manifest.path.invalid", relative, "%v", err)}
 	}
+	if diagnostics := checkResolvedContainment(root, path, relative); len(diagnostics) > 0 {
+		return nil, diagnostics
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		code := "package.member.unreadable"
@@ -350,6 +477,27 @@ func readMember(root, relative, expectedDigest string) ([]byte, []Diagnostic) {
 		return nil, []Diagnostic{diagnostic("package.member.digest_mismatch", relative, "expected %s, got %s", expectedDigest, actual)}
 	}
 	return data, nil
+}
+
+// safeJoin is only lexical; reading a member follows symlinks, so the
+// resolved location must also stay inside the resolved package root.
+func checkResolvedContainment(root, path, relative string) []Diagnostic {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return []Diagnostic{diagnostic("package.member.unreadable", relative, "cannot resolve declared member: %v", err)}
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return []Diagnostic{diagnostic("package.member.unreadable", relative, "cannot resolve package root: %v", err)}
+	}
+	rel, err := filepath.Rel(resolvedRoot, resolved)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return []Diagnostic{diagnostic("package.member.escape", relative, "member resolves outside the package root")}
+	}
+	return nil
 }
 
 func safeJoin(root, relative string) (string, error) {

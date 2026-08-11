@@ -220,6 +220,8 @@ func validateDocuments(manifest Manifest, triples []sourcedTriple) []Diagnostic 
 		shapeIDs[shape.ID] = true
 	}
 	parents := map[string]string{}
+	visited := map[string]bool{}
+	active := map[string]bool{}
 	for _, root := range manifest.DocumentRoots {
 		diagnostics = append(diagnostics, requireTypedEntity(triples, root.ID, s2sBundle, root.Source, "graph.document_root.invalid")...)
 		sections := objectValues(triples, root.ID, s2sRootSection)
@@ -230,10 +232,15 @@ func validateDocuments(manifest Manifest, triples []sourcedTriple) []Diagnostic 
 		if len(sections) > 1 {
 			diagnostics = append(diagnostics, validateSiblingPositions(triples, root.Source, sections)...)
 		}
-		visited := map[string]bool{}
-		active := map[string]bool{}
 		for _, section := range sections {
 			diagnostics = append(diagnostics, validateSection(triples, section, root.ID, root.Source, shapeIDs, parents, visited, active)...)
+		}
+	}
+	for _, typeIRI := range []string{s2sSection, s2sPlacement} {
+		for _, subject := range subjectsWith(triples, rdfType, typeIRI) {
+			if !visited[subject] {
+				diagnostics = append(diagnostics, diagnostic("graph.document_node.orphan", sourceForType(triples, subject, typeIRI), "document node %s is not reachable from a declared document root", subject))
+			}
 		}
 	}
 	return diagnostics
@@ -263,6 +270,7 @@ func validateSection(triples []sourcedTriple, section, parent, fallbackSource st
 			diagnostics = append(diagnostics, validateSection(triples, child, section, source, shapeIDs, parents, visited, active)...)
 		case hasType(triples, child, s2sPlacement):
 			diagnostics = append(diagnostics, claimParent(parents, child, section, source)...)
+			visited[child] = true
 			diagnostics = append(diagnostics, validatePlacement(triples, child, source, shapeIDs)...)
 		default:
 			diagnostics = append(diagnostics, diagnostic("graph.document_member.invalid", source, "member %s is neither a DocumentSection nor DocumentPlacement", child))
