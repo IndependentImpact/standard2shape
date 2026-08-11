@@ -1,0 +1,18 @@
+{
+  "manifestVersion": "0.1",
+  "id": "https://example.org/packages/conflict/0.1.0",
+  "version": "0.1.0",
+  "standardRelease": { "id": "https://example.org/ConflictRelease", "version": "0.1.0", "source": "shared.ttl" },
+  "documentRoots": [{ "id": "https://example.org/ConflictDocument", "source": "shared.ttl" }],
+  "canonicalShapes": [{ "id": "https://example.org/ConflictShape", "source": "shared.ttl" }],
+  "artifacts": [
+    { "path": "shared.ttl", "role": "document", "mediaType": "text/turtle", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000" },
+    { "path": "shared.ttl", "role": "shapes", "mediaType": "text/turtle", "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" }
+  ],
+  "imports": [],
+  "references": [],
+  "reasoningProfile": { "id": "https://example.org/ConflictProfile", "version": "0.1.0", "source": "shared.ttl" },
+  "conformanceVectors": [
+    { "id": "https://example.org/tests/conflict", "name": "conflicting member", "path": "data.ttl", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "expected": "conforms" }
+  ]
+}

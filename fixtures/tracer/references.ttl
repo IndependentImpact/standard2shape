@@ -2,14 +2,21 @@
 @prefix s2s: <https://standard2shape.dev/vocab#> .
 
 ex:DemoStandardRelease a s2s:StandardRelease ;
+  s2s:releaseVersion "0.1.0" ;
+  s2s:definesDocument ex:ProjectDocument ;
+  s2s:usesReasoningProfile ex:NoEntailmentProfile ;
   s2s:authorizesIndicator ex:AvoidedEmissions ;
   s2s:authorizesMethodology ex:DemoMethodologyV1 .
+
+ex:NoEntailmentProfile a s2s:ReasoningProfile ;
+  s2s:profileVersion "0.1.0" ;
+  s2s:entailmentRegime "none" .
 
 ex:DemoMethodologyV1 a s2s:MethodologyReference ;
   s2s:forIndicator ex:AvoidedEmissions ;
   s2s:artifactVersion "1.0.0" ;
-  s2s:artifactDigest "sha256:synthetic-methodology-fixture" .
+  s2s:artifactDigest "sha256:2222222222222222222222222222222222222222222222222222222222222222" .
 
 ex:AvoidedEmissions a s2s:IndicatorReference ;
   s2s:artifactVersion "1.0.0" ;
-  s2s:artifactDigest "sha256:synthetic-indicator-fixture" .
+  s2s:artifactDigest "sha256:1111111111111111111111111111111111111111111111111111111111111111" .

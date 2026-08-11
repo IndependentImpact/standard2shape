@@ -1,0 +1,17 @@
+{
+  "manifestVersion": "0.1",
+  "id": "https://example.org/packages/missing/0.1.0",
+  "version": "0.1.0",
+  "standardRelease": { "id": "https://example.org/MissingRelease", "version": "0.1.0", "source": "missing.ttl" },
+  "documentRoots": [{ "id": "https://example.org/MissingDocument", "source": "missing.ttl" }],
+  "canonicalShapes": [{ "id": "https://example.org/MissingShape", "source": "missing.ttl" }],
+  "artifacts": [
+    { "path": "missing.ttl", "role": "document", "mediaType": "text/turtle", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000" }
+  ],
+  "imports": [],
+  "references": [],
+  "reasoningProfile": { "id": "https://example.org/MissingProfile", "version": "0.1.0", "source": "missing.ttl" },
+  "conformanceVectors": [
+    { "id": "https://example.org/tests/missing", "name": "missing evidence", "path": "missing-data.ttl", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "expected": "conforms" }
+  ]
+}

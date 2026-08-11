@@ -10,11 +10,26 @@ export interface Snapshot {
 }
 
 export interface Manifest {
+  manifestVersion: string;
   id: string;
   version: string;
-  document: string;
-  sources: string[];
-  dataTests: Array<{ name: string; path: string; expectConforms: boolean }>;
+  standardRelease: VersionedGraphEntity;
+  documentRoots: GraphEntity[];
+  canonicalShapes: GraphEntity[];
+  artifacts: Array<{ path: string; role: string; mediaType: string; digest: string }>;
+  imports: Array<{ source: string; iri: string; version: string; digest: string; policy: string }>;
+  references: Array<{ kind: string; id: string; version: string; digest: string; source: string }>;
+  reasoningProfile: VersionedGraphEntity;
+  conformanceVectors: Array<{ id: string; name: string; path: string; digest: string; expected: string }>;
+}
+
+interface GraphEntity {
+  id: string;
+  source: string;
+}
+
+interface VersionedGraphEntity extends GraphEntity {
+  version: string;
 }
 
 export interface DocumentSummary {
