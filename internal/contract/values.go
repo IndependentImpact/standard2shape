@@ -40,6 +40,12 @@ func IsTimestamp(value string) bool {
 	return err == nil && strings.HasSuffix(value, "Z") && parsed.UTC().Equal(parsed)
 }
 
+// IsBlank mirrors the schemas' `"pattern": "\\S"` exactly: a string is blank
+// when it contains only the whitespace the RE2/ECMA \s class agrees on.
+func IsBlank(value string) bool {
+	return strings.Trim(value, " \t\n\f\r") == ""
+}
+
 func SHA256(data []byte) string {
 	sum := sha256.Sum256(data)
 	return "sha256:" + hex.EncodeToString(sum[:])

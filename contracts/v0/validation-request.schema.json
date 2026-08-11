@@ -32,6 +32,17 @@
       "items": { "$ref": "#/$defs/iri" }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "checks": { "contains": { "enum": ["semantic-applicability", "quantitative-applicability"] } }
+        },
+        "required": ["checks"]
+      },
+      "then": { "properties": { "requirements": { "minItems": 1 } } }
+    }
+  ],
   "$defs": {
     "iri": { "type": "string", "format": "iri", "minLength": 1 },
     "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },

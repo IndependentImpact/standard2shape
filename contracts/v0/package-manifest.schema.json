@@ -114,10 +114,11 @@
     "vector": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "path", "digest", "expected"],
+      "required": ["id", "name", "requirement", "path", "digest", "expected"],
       "properties": {
         "id": { "$ref": "#/$defs/iri" },
-        "name": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "requirement": { "$ref": "#/$defs/iri" },
         "path": { "$ref": "#/$defs/path" },
         "digest": { "$ref": "#/$defs/digest" },
         "expected": { "enum": ["conforms", "non-conforms"] }

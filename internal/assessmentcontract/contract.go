@@ -15,13 +15,13 @@ var (
 	packageRefSpec = contract.ObjectSpec{"id": nil, "version": nil, "digest": nil}
 	entityRefSpec  = contract.ObjectSpec{"id": nil, "version": nil}
 	evidenceSpec   = contract.ObjectSpec{"path": nil, "digest": nil}
-	violationSpec  = contract.ObjectSpec{"requirement": nil, "severity": nil, "message": nil, "focus": nil, "path": nil, "source": nil}
-	vectorSpec     = contract.ObjectSpec{"id": nil, "expected": nil, "actual": nil}
+	violationSpec  = contract.ObjectSpec{"requirement": nil, "severity": nil, "message": nil, "focus": contract.NonEmpty{}, "path": contract.NonEmpty{}, "source": contract.NonEmpty{}}
+	vectorSpec     = contract.ObjectSpec{"id": nil, "expected": nil, "actual": contract.NonEmpty{}}
 	resultSpec     = contract.ObjectSpec{
 		"check":           nil,
 		"outcome":         nil,
 		"requirement":     entityRefSpec,
-		"message":         nil,
+		"message":         contract.NonEmpty{},
 		"violations":      contract.ArraySpec{Element: violationSpec},
 		"evidenceChecked": contract.ArraySpec{Element: evidenceSpec},
 		"vector":          vectorSpec,

@@ -2,7 +2,6 @@ package assessmentcontract
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/IndependentImpact/standard2shape/internal/contract"
@@ -46,6 +45,9 @@ func validateRequest(request Request) []contract.Diagnostic {
 	}
 	if request.Requirements == nil {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", "requirements", "requirements must be an array, possibly empty"))
+	}
+	if (seenChecks[CheckSemanticApplicability] || seenChecks[CheckQuantitativeApplicability]) && len(request.Requirements) == 0 {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".requirements.empty", "requirements", "applicability checks require at least one requested requirement"))
 	}
 	seenRequirements := map[string]bool{}
 	for index, requirement := range request.Requirements {
@@ -144,8 +146,8 @@ func validateResult(location string, result CheckResult) []contract.Diagnostic {
 	if result.Requirement != nil {
 		diagnostics = append(diagnostics, checkEntityRef(prefix, location+".requirement", *result.Requirement)...)
 	}
-	if result.Message != "" && strings.TrimSpace(result.Message) == "" {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".message", "message must not be blank"))
+	if result.Message != "" && contract.IsBlank(result.Message) {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.blank", location+".message", "message must not be blank"))
 	}
 
 	if result.Violations == nil {
@@ -168,7 +170,7 @@ func validateResult(location string, result CheckResult) []contract.Diagnostic {
 	}
 
 	if failureOutcome {
-		if strings.TrimSpace(result.Message) == "" {
+		if contract.IsBlank(result.Message) {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".result.message_required", location, "a %s result must explain itself in message", result.Outcome))
 		}
 		if len(result.Violations) != 0 {
@@ -240,7 +242,7 @@ func validateViolation(location string, violation Violation) []contract.Diagnost
 	} else if violation.Severity != "violation" && violation.Severity != "warning" && violation.Severity != "info" {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".severity.invalid", location+".severity", "severity must be violation, warning, or info"))
 	}
-	if strings.TrimSpace(violation.Message) == "" {
+	if contract.IsBlank(violation.Message) {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".message", "violation message is required"))
 	}
 	if violation.Source != "" && !contract.IsNormalizedPath(violation.Source) {

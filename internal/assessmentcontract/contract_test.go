@@ -42,12 +42,12 @@ func TestValidFixturesDecodeAndCrossCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := CheckAgainstRequest(request, assessment); err != nil {
-		t.Fatalf("valid assessment must answer the fixture request: %v", err)
-	}
 	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if err := CheckAgainstRequest(request, assessment, pkg); err != nil {
+		t.Fatalf("valid assessment must answer the fixture request: %v", err)
 	}
 	if err := CheckSuiteAgainstPackage(suite, pkg); err != nil {
 		t.Fatalf("suite must cover the tracer package: %v", err)
@@ -234,12 +234,16 @@ func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dropped := assessment
 	dropped.Results = slices.DeleteFunc(append([]CheckResult{}, assessment.Results...), func(result CheckResult) bool {
 		return result.Check == CheckQuantitativeApplicability
 	})
-	err = CheckAgainstRequest(request, dropped)
+	err = CheckAgainstRequest(request, dropped, pkg)
 	var contractErr *contract.Error
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.requirement_missing") {
 		t.Fatalf("dropping a requested requirement must be rejected, got %v", err)
@@ -255,7 +259,7 @@ func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
 			substituted.Results[index] = result
 		}
 	}
-	err = CheckAgainstRequest(request, substituted)
+	err = CheckAgainstRequest(request, substituted, pkg)
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.requirement_unrequested") {
 		t.Fatalf("substituting a requirement must be rejected, got %v", err)
 	}
@@ -272,12 +276,146 @@ func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
 		}
 		tampered.Results[index] = result
 	}
-	err = CheckAgainstRequest(request, tampered)
+	err = CheckAgainstRequest(request, tampered, pkg)
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.evidence_mismatch") {
 		t.Fatalf("substituting requested evidence must be rejected, got %v", err)
 	}
 	if !hasDiagnostic(contractErr.Diagnostics, "assessment.request.evidence_missing") {
 		t.Fatalf("dropping requested evidence must be rejected, got %v", err)
+	}
+}
+
+func TestSuiteRequirementLabelsAreBoundToTheManifest(t *testing.T) {
+	suite, err := DecodeSuite(fixture(t, "suite.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	suite.Vectors[0].Requirement = "https://example.org/standard/RelabelledRequirement"
+	suite.Vectors[0].Category = "valid"
+	err = CheckSuiteAgainstPackage(suite, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "suite.vector.requirement_mismatch") {
+		t.Fatalf("relabelling a vector's requirement must be rejected, got %v", err)
+	}
+}
+
+func TestAssessmentEvidenceMustBeRequestedOrPackageMembers(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foreign := assessment
+	foreign.Results = append([]CheckResult{}, assessment.Results...)
+	result := foreign.Results[0]
+	result.EvidenceChecked = append(append([]EvidenceRef{}, result.EvidenceChecked...), EvidenceRef{
+		Path:   "somewhere-else.ttl",
+		Digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+	})
+	foreign.Results[0] = result
+	err = CheckAgainstRequest(request, foreign, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.evidence_unknown") {
+		t.Fatalf("attesting a non-member path must be rejected, got %v", err)
+	}
+
+	tamperedMember := assessment
+	tamperedMember.Results = append([]CheckResult{}, assessment.Results...)
+	memberResult := tamperedMember.Results[0]
+	memberResult.EvidenceChecked = append([]EvidenceRef{}, memberResult.EvidenceChecked...)
+	for index, evidence := range memberResult.EvidenceChecked {
+		if evidence.Path == "shapes.ttl" {
+			evidence.Digest = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+			memberResult.EvidenceChecked[index] = evidence
+		}
+	}
+	tamperedMember.Results[0] = memberResult
+	err = CheckAgainstRequest(request, tamperedMember, pkg)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.evidence_mismatch") {
+		t.Fatalf("attesting a package member under a foreign digest must be rejected, got %v", err)
+	}
+}
+
+func TestRequestedTestVectorsRequireCompleteResults(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results = slices.DeleteFunc(append([]CheckResult{}, assessment.Results...), func(result CheckResult) bool {
+		return result.Vector != nil && result.Vector.ID == "https://example.org/standards/demo/tests/missing-title"
+	})
+	err = CheckAgainstRequest(request, assessment, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.vector_missing") {
+		t.Fatalf("omitting a declared vector must be rejected, got %v", err)
+	}
+}
+
+func TestApplicabilityRequestsRequireRequirements(t *testing.T) {
+	requestData := bytes.Replace(fixture(t, "request.json"), []byte(`"requirements": [
+    "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield",
+    "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope"
+  ]`), []byte(`"requirements": []`), 1)
+	_, err := DecodeRequest(requestData)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "request.requirements.empty") {
+		t.Fatalf("applicability checks without requirements must be rejected, got %v", err)
+	}
+	requestSchema := compileSchema(t, "validation-request.schema.json")
+	if err := validateAgainstSchema(t, requestSchema, requestData); err == nil {
+		t.Fatal("the schema must also reject applicability checks without requirements")
+	}
+}
+
+func TestEmptyAndBlankStringsAgreeWithSchemas(t *testing.T) {
+	assessmentSchema := compileSchema(t, "assessment.schema.json")
+	base := fixture(t, "assessment-valid.json")
+	target := []byte(`"message": "no quantitative evaluation binding is available to this evaluator"`)
+
+	empty := bytes.Replace(base, target, []byte(`"message": ""`), 1)
+	_, err := DecodeAssessment(empty)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.field.empty") {
+		t.Fatalf("explicit empty message must be rejected, got %v", err)
+	}
+	if err := validateAgainstSchema(t, assessmentSchema, empty); err == nil {
+		t.Fatal("the schema must also reject an explicit empty message")
+	}
+
+	blank := bytes.Replace(base, target, []byte(`"message": " \t "`), 1)
+	if _, err := DecodeAssessment(blank); err == nil {
+		t.Fatal("whitespace-only message must be rejected by the verifier")
+	}
+	if err := validateAgainstSchema(t, assessmentSchema, blank); err == nil {
+		t.Fatal("the schema must also reject a whitespace-only message")
+	}
+
+	badIRI := bytes.Replace(base, []byte(`"id": "https://standard2shape.dev/evaluators/local-tracer"`), []byte(`"id": "not-an-iri"`), 1)
+	if _, err := DecodeAssessment(badIRI); err == nil {
+		t.Fatal("a non-IRI evaluator id must be rejected by the verifier")
+	}
+	if err := validateAgainstSchema(t, assessmentSchema, badIRI); err == nil {
+		t.Fatal("the schema must also reject a non-IRI evaluator id with format assertion")
 	}
 }
 
@@ -381,6 +519,10 @@ func TestEquivalentAdaptersProduceEquivalentAssessments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	adapters := []Adapter{
 		localAdapter{root: filepath.Join("..", "..", "fixtures", "tracer")},
 		hostedAdapter{stored: fixture(t, "assessment-valid.json")},
@@ -393,7 +535,7 @@ func TestEquivalentAdaptersProduceEquivalentAssessments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := CheckAgainstRequest(request, assessment); err != nil {
+		if err := CheckAgainstRequest(request, assessment, pkg); err != nil {
 			t.Fatalf("adapter %T does not answer the request: %v", adapter, err)
 		}
 		semanticBytes, err := SemanticBytes(assessment)
@@ -483,6 +625,20 @@ func TestSchemaValuePatternsMatchVerifier(t *testing.T) {
 func compileSchema(t *testing.T, name string) *jsonschema.Schema {
 	t.Helper()
 	compiler := jsonschema.NewCompiler()
+	compiler.AssertFormat()
+	compiler.RegisterFormat(&jsonschema.Format{
+		Name: "iri",
+		Validate: func(v any) error {
+			value, ok := v.(string)
+			if !ok {
+				return nil
+			}
+			if !contract.IsIRI(value) {
+				return errors.New("not an absolute IRI")
+			}
+			return nil
+		},
+	})
 	schema, err := compiler.Compile(filepath.Join("..", "..", "contracts", "v0", name))
 	if err != nil {
 		t.Fatalf("compile %s: %v", name, err)
@@ -554,6 +710,7 @@ func TestNormalizedDocumentsSatisfyPublishedSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	request.Checks = []string{CheckSyntax, CheckPackageStructure}
 	request.Evidence = []EvidenceRef{}
 	request.Requirements = []string{}
 	normalizedRequest, err := NormalizeRequest(request)

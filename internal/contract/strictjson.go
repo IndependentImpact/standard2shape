@@ -10,6 +10,11 @@ type ObjectSpec map[string]any
 
 type ArraySpec struct{ Element any }
 
+// NonEmpty marks an optional string field whose schema requires minLength 1:
+// the field may be omitted, but a present empty string must be rejected, which
+// the zero-value Go decoding cannot see.
+type NonEmpty struct{}
+
 // Go's JSON decoder matches struct fields case-insensitively and lets later
 // duplicate keys overwrite earlier values; closed contract schemas allow
 // neither, so field names are checked against the spec exactly. codePrefix
@@ -87,6 +92,11 @@ func (walker fieldWalker) checkSpecValue(decoder *json.Decoder, location string,
 		}
 		_, err := decoder.Token()
 		return diagnostics, err
+	case NonEmpty:
+		if value, ok := token.(string); ok && value == "" {
+			return []Diagnostic{Diag(walker.codePrefix+".field.empty", location, "field must not be an empty string")}, nil
+		}
+		return nil, skipOpened(decoder, token)
 	default:
 		return nil, skipOpened(decoder, token)
 	}

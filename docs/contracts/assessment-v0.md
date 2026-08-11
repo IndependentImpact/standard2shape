@@ -39,11 +39,11 @@ The last three require an explanatory `message` and carry no violations. Violati
 
 A test-vector result identifies its vector with the expected outcome and, when the check ran, the actual outcome. The result conforms exactly when actual matches expected; observed violations belong to the vector's evidence, so an expected-invalid vector that fails as expected is a `conforms` result carrying violations.
 
-An assessment answers exactly its request: every requested check and every requested requirement has at least one result and no result covers an unrequested check or requirement; every requested evidence graph is attested by at least one result with the pinned digest, and no result may attest a requested path under a different digest. Results may additionally attest package members beyond the requested evidence — the package is already pinned by its manifest digest.
+An assessment answers exactly its request against its package: every requested check and every requested requirement has at least one result and no result covers an unrequested check or requirement; when test-vector execution is requested, every conformance vector the manifest declares has a result carrying the manifest's expected outcome, so no vector can be silently omitted. Every requested evidence graph is attested by at least one result with the pinned digest, and every attested path must be either requested evidence or a declared package member — in both cases under its pinned digest. A request whose checks include applicability must request at least one requirement, so every schema-valid request is answerable.
 
 ## Conformance suite
 
-A suite categorizes a package's conformance vectors as `valid`, `invalid`, or `boundary`, each naming the executable requirement it exercises. Coverage is per requirement: every requirement appearing in the suite must have at least one vector of each category, so no executable requirement ships without valid, invalid, and boundary cases. Valid vectors expect `conforms`, invalid vectors expect `non-conforms`, and boundary vectors pin the decided outcome at the requirement's edge. A suite covers its package exactly: every manifest vector appears once, with the manifest's expected outcome.
+A suite categorizes a package's conformance vectors as `valid`, `invalid`, or `boundary`, each naming the executable requirement it exercises. The requirement labels are not self-declared: the package manifest canonically binds each vector to a declared canonical shape or reference, and a suite whose labels differ from the manifest is rejected. Coverage is per requirement and measured against the manifest: every requirement the manifest's vectors declare must have at least one suite vector of each category, so no executable requirement ships without valid, invalid, and boundary cases. Valid vectors expect `conforms`, invalid vectors expect `non-conforms`, and boundary vectors pin the decided outcome at the requirement's edge. A suite covers its package exactly: every manifest vector appears once, with the manifest's expected outcome.
 
 ## Semantic equivalence
 
@@ -54,8 +54,10 @@ Normalization sorts results by (check, requirement, vector), violations and evid
 Contract errors reuse the package-contract diagnostic form: stable code, location, message. Initial codes include:
 
 - `request.field.required`, `assessment.field.required`, `suite.field.required` — a required member is absent, whether scalar, object, or array (required arrays may be empty but never omitted);
-- `request.field.unknown` / `.field.duplicate` / `.field.null` (and the assessment/suite forms) — unknown, differently cased, repeated, or explicitly null JSON fields;
+- `request.field.unknown` / `.field.duplicate` / `.field.null` / `.field.empty` (and the assessment/suite forms) — unknown, differently cased, repeated, explicitly null, or present-but-empty JSON fields;
+- `assessment.field.blank` — a present optional string containing only whitespace;
 - `request.check.invalid` / `request.check.duplicate` — an unknown or repeated requested check;
+- `request.requirements.empty` — applicability checks requested without any requirement;
 - `assessment.result.duplicate` — repeated (check, requirement, vector) identity;
 - `assessment.result.message_required` — a failure, unsupported, or indeterminate result without explanation;
 - `assessment.result.outcome_forbidden` — indeterminate used outside the applicability checks;
@@ -64,12 +66,12 @@ Contract errors reuse the package-contract diagnostic form: stable code, locatio
 - `assessment.result.requirement_required` / `.requirement_forbidden` — requirement identity coupling;
 - `assessment.timestamp.invalid` / `.timestamp.order` — timestamps that are not RFC 3339 UTC instants or run backwards;
 - `suite.category.invalid` / `.category.missing` / `.category.expected_mismatch` — per-requirement category coverage and expectation coupling;
-- `suite.vector.duplicate` / `.vector.unknown` / `.vector.missing` / `.vector.expected_mismatch` — suite/package coverage;
-- `assessment.request.package_mismatch` / `.profile_mismatch` / `.check_missing` / `.check_unrequested` / `.requirement_missing` / `.requirement_unrequested` / `.evidence_missing` / `.evidence_mismatch` — an assessment that does not answer its request.
+- `suite.vector.duplicate` / `.vector.unknown` / `.vector.missing` / `.vector.expected_mismatch` / `.vector.requirement_mismatch` — suite/package coverage and manifest binding;
+- `assessment.request.package_mismatch` / `.profile_mismatch` / `.check_missing` / `.check_unrequested` / `.requirement_missing` / `.requirement_unrequested` / `.evidence_missing` / `.evidence_mismatch` / `.evidence_unknown` / `.vector_missing` / `.vector_unknown` / `.vector_expected_mismatch` — an assessment that does not answer its request against its package.
 
 ## Schema and verifier alignment
 
-The JSON Schemas express the structural rules and the outcome couplings; the verifier enforces the same rules plus the ones a schema cannot state: uniqueness over compound identities, per-requirement suite coverage, suite/package coverage, request/assessment coverage, and calendar validity of timestamps. The schema timestamp pattern is a syntactic bound — a calendar-invalid instant such as February 30 passes the pattern but is rejected by the verifier. No other divergence is permitted: the path, version, and digest patterns accept exactly what the verifier accepts, explicit `null` values are rejected by both, and the test suite runs every fixture and every normalized document through a Draft 2020-12 validator against the published schemas.
+The JSON Schemas express the structural rules and the outcome couplings; the verifier enforces the same rules plus the ones a schema cannot state: uniqueness over compound identities, per-requirement suite coverage, suite/package coverage, request/assessment coverage, and calendar validity of timestamps. The schema timestamp pattern is a syntactic bound — a calendar-invalid instant such as February 30 passes the pattern but is rejected by the verifier. No other divergence is permitted: the path, version, and digest patterns accept exactly what the verifier accepts; explicit `null` values and present-but-empty or whitespace-only strings are rejected by both; and the test suite runs every fixture and every normalized document through a Draft 2020-12 validator against the published schemas with format assertion enabled and `iri` bound to the verifier's own IRI predicate. JSON Schema treats `format` as an annotation unless a consumer asserts it; conforming consumers must assert formats or apply an equivalent IRI check.
 
 ## Versioning
 

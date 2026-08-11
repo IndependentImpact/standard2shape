@@ -160,7 +160,7 @@ var (
 		"imports":            contract.ArraySpec{Element: contract.ObjectSpec{"source": nil, "iri": nil, "version": nil, "digest": nil, "policy": nil}},
 		"references":         contract.ArraySpec{Element: contract.ObjectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
 		"reasoningProfile":   versionedEntitySpec,
-		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "path": nil, "digest": nil, "expected": nil}},
+		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "requirement": nil, "path": nil, "digest": nil, "expected": nil}},
 	}
 )
 
@@ -259,13 +259,24 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		referenceKeys[key] = true
 	}
 
+	requirementTargets := map[string]bool{}
+	for _, shape := range manifest.CanonicalShapes {
+		requirementTargets[shape.ID] = true
+	}
+	for _, reference := range manifest.References {
+		requirementTargets[reference.ID] = true
+	}
 	vectorPaths := map[string]ConformanceVector{}
 	vectorIDs := map[string]bool{}
 	for index, vector := range manifest.ConformanceVectors {
 		location := fmt.Sprintf("conformanceVectors[%d]", index)
 		diagnostics = append(diagnostics, validateIRI(location+".id", vector.ID)...)
-		if strings.TrimSpace(vector.Name) == "" {
+		if contract.IsBlank(vector.Name) {
 			diagnostics = append(diagnostics, diagnostic("manifest.field.required", location+".name", "vector name is required"))
+		}
+		diagnostics = append(diagnostics, validateIRI(location+".requirement", vector.Requirement)...)
+		if vector.Requirement != "" && !requirementTargets[vector.Requirement] {
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.requirement_unknown", location+".requirement", "requirement %s is not a declared canonical shape or reference", vector.Requirement))
 		}
 		diagnostics = append(diagnostics, validatePath(location+".path", vector.Path)...)
 		diagnostics = append(diagnostics, validateDigest(location+".digest", vector.Digest)...)
