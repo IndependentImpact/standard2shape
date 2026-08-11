@@ -58,6 +58,7 @@ Contract errors expose a stable code, package-relative location, and explanatory
 
 - `manifest.field.unknown` — a manifest field is unknown or differently cased;
 - `manifest.field.duplicate` — a manifest field is declared more than once;
+- `manifest.field.null` — a manifest field is explicitly null;
 - `package.member.missing` — a declared local member is absent;
 - `package.member.duplicate` — the same member descriptor is declared more than once;
 - `package.member.conflict` — one path is assigned incompatible descriptors or roles;

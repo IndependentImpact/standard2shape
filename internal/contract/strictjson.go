@@ -34,6 +34,11 @@ func (walker fieldWalker) checkSpecValue(decoder *json.Decoder, location string,
 	if err != nil {
 		return nil, err
 	}
+	if token == nil {
+		// The closed schemas never allow null: a present field must carry its
+		// declared type, but Go decodes null to the zero value silently.
+		return []Diagnostic{Diag(walker.codePrefix+".field.null", location, "field must not be null")}, nil
+	}
 	delim, isDelim := token.(json.Delim)
 	switch spec := spec.(type) {
 	case ObjectSpec:

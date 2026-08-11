@@ -8,10 +8,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/IndependentImpact/standard2shape/internal/contract"
 	"github.com/IndependentImpact/standard2shape/internal/packagecontract"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 func fixture(t *testing.T, name string) []byte {
@@ -127,6 +129,158 @@ func TestAssessmentNormalizationIsDeterministic(t *testing.T) {
 	}
 }
 
+func TestNormalizationOrdersBySeverity(t *testing.T) {
+	assessment, err := DecodeAssessment(fixture(t, "assessment-non-conforming.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := assessment.Results[0].Violations[0]
+	warning := base
+	warning.Severity = "warning"
+	assessment.Results[0].Violations = []Violation{base, warning}
+	first, err := NormalizeAssessment(assessment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results[0].Violations = []Violation{warning, base}
+	second, err := NormalizeAssessment(assessment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(first, second) {
+		t.Fatalf("violation order depends on input severity order:\nfirst:\n%s\nsecond:\n%s", first, second)
+	}
+}
+
+func TestExplicitNullFieldsAreRejected(t *testing.T) {
+	data := fixture(t, "assessment-valid.json")
+	nullified := bytes.Replace(data, []byte(`"message": "no quantitative evaluation binding is available to this evaluator"`), []byte(`"message": null`), 1)
+	_, err := DecodeAssessment(nullified)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.field.null") {
+		t.Fatalf("expected explicit-null diagnostic, got %v", err)
+	}
+}
+
+func TestMissingRequiredFieldsReportFieldRequired(t *testing.T) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(fixture(t, "request.json"), &fields); err != nil {
+		t.Fatal(err)
+	}
+	delete(fields, "requestVersion")
+	delete(fields, "package")
+	stripped, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = DecodeRequest(stripped)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) {
+		t.Fatalf("error type = %T: %v", err, err)
+	}
+	for _, location := range []string{"requestVersion", "package.id", "package.version", "package.digest"} {
+		found := slices.ContainsFunc(contractErr.Diagnostics, func(d contract.Diagnostic) bool {
+			return d.Code == "request.field.required" && d.Location == location
+		})
+		if !found {
+			t.Fatalf("missing request.field.required at %s in %#v", location, contractErr.Diagnostics)
+		}
+	}
+}
+
+func TestSuiteCoverageIsPerRequirement(t *testing.T) {
+	suite, err := DecodeSuite(fixture(t, "suite.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	suite.Vectors = append(suite.Vectors, SuiteVector{
+		ID:          "https://example.org/standards/demo/tests/second-requirement-valid",
+		Requirement: "https://example.org/standard/AnotherRequirement",
+		Category:    "valid",
+		Expected:    "conforms",
+	})
+	err = contract.ErrorFor(validateSuite(suite))
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "suite.category.missing") {
+		t.Fatalf("a requirement with partial category coverage must be rejected, got %v", err)
+	}
+}
+
+func TestIndeterminateIsOnlyForApplicabilityChecks(t *testing.T) {
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results[0] = CheckResult{
+		Check:           CheckSyntax,
+		Outcome:         OutcomeIndeterminate,
+		Message:         "cannot decide",
+		Violations:      []Violation{},
+		EvidenceChecked: []EvidenceRef{},
+	}
+	err = contract.ErrorFor(validateAssessment(assessment))
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.result.outcome_forbidden") {
+		t.Fatalf("indeterminate outside applicability checks must be rejected, got %v", err)
+	}
+}
+
+func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dropped := assessment
+	dropped.Results = slices.DeleteFunc(append([]CheckResult{}, assessment.Results...), func(result CheckResult) bool {
+		return result.Check == CheckQuantitativeApplicability
+	})
+	err = CheckAgainstRequest(request, dropped)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.requirement_missing") {
+		t.Fatalf("dropping a requested requirement must be rejected, got %v", err)
+	}
+
+	substituted := assessment
+	substituted.Results = append([]CheckResult{}, assessment.Results...)
+	for index, result := range substituted.Results {
+		if result.Check == CheckSemanticApplicability {
+			swapped := *result.Requirement
+			swapped.ID = "https://example.org/standard/SomethingElse"
+			result.Requirement = &swapped
+			substituted.Results[index] = result
+		}
+	}
+	err = CheckAgainstRequest(request, substituted)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.requirement_unrequested") {
+		t.Fatalf("substituting a requirement must be rejected, got %v", err)
+	}
+
+	tampered := assessment
+	tampered.Results = append([]CheckResult{}, assessment.Results...)
+	for index, result := range tampered.Results {
+		result.EvidenceChecked = append([]EvidenceRef{}, result.EvidenceChecked...)
+		for evidenceIndex, evidence := range result.EvidenceChecked {
+			if evidence.Path == "data-valid.ttl" {
+				evidence.Digest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+				result.EvidenceChecked[evidenceIndex] = evidence
+			}
+		}
+		tampered.Results[index] = result
+	}
+	err = CheckAgainstRequest(request, tampered)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.evidence_mismatch") {
+		t.Fatalf("substituting requested evidence must be rejected, got %v", err)
+	}
+	if !hasDiagnostic(contractErr.Diagnostics, "assessment.request.evidence_missing") {
+		t.Fatalf("dropping requested evidence must be rejected, got %v", err)
+	}
+}
+
 // localAdapter independently derives an assessment from the package on disk,
 // faking every evaluation as its deterministic canned outcome.
 type localAdapter struct {
@@ -160,22 +314,27 @@ func (adapter localAdapter) Evaluate(request Request) (Assessment, error) {
 		CheckResult{Check: CheckPackageStructure, Outcome: OutcomeConforms, Violations: []Violation{}, EvidenceChecked: []EvidenceRef{}},
 		CheckResult{Check: CheckSHACL, Outcome: OutcomeConforms, Violations: []Violation{}, EvidenceChecked: append([]EvidenceRef{}, request.Evidence...)},
 		CheckResult{Check: CheckReasoningProfile, Outcome: OutcomeConforms, Violations: []Violation{}, EvidenceChecked: []EvidenceRef{{Path: pkg.Manifest.ReasoningProfile.Source, Digest: artifactDigests[pkg.Manifest.ReasoningProfile.Source]}}},
-		CheckResult{
-			Check:           CheckSemanticApplicability,
-			Outcome:         OutcomeConforms,
-			Requirement:     &EntityRef{ID: "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope", Version: "1.0.0"},
-			Violations:      []Violation{},
-			EvidenceChecked: append([]EvidenceRef{}, request.Evidence...),
-		},
-		CheckResult{
+	)
+	for _, requirement := range request.Requirements {
+		if strings.Contains(requirement, "semantic") {
+			assessment.Results = append(assessment.Results, CheckResult{
+				Check:           CheckSemanticApplicability,
+				Outcome:         OutcomeConforms,
+				Requirement:     &EntityRef{ID: requirement, Version: "1.0.0"},
+				Violations:      []Violation{},
+				EvidenceChecked: append([]EvidenceRef{}, request.Evidence...),
+			})
+			continue
+		}
+		assessment.Results = append(assessment.Results, CheckResult{
 			Check:           CheckQuantitativeApplicability,
 			Outcome:         OutcomeUnsupported,
-			Requirement:     &EntityRef{ID: "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield", Version: "1.0.0"},
+			Requirement:     &EntityRef{ID: requirement, Version: "1.0.0"},
 			Message:         "no quantitative evaluation binding is available to this evaluator",
 			Violations:      []Violation{},
 			EvidenceChecked: []EvidenceRef{},
-		},
-	)
+		})
+	}
 	for _, vector := range pkg.Manifest.ConformanceVectors {
 		violations := []Violation{}
 		if vector.Expected == OutcomeNonConforms {
@@ -318,6 +477,115 @@ func TestSchemaValuePatternsMatchVerifier(t *testing.T) {
 	calendarInvalid := "2026-02-30T08:00:00Z"
 	if !timestampPattern.MatchString(calendarInvalid) || contract.IsTimestamp(calendarInvalid) {
 		t.Errorf("calendar-invalid instant: schema=%t (want true), verifier=%t (want false)", timestampPattern.MatchString(calendarInvalid), contract.IsTimestamp(calendarInvalid))
+	}
+}
+
+func compileSchema(t *testing.T, name string) *jsonschema.Schema {
+	t.Helper()
+	compiler := jsonschema.NewCompiler()
+	schema, err := compiler.Compile(filepath.Join("..", "..", "contracts", "v0", name))
+	if err != nil {
+		t.Fatalf("compile %s: %v", name, err)
+	}
+	return schema
+}
+
+func validateAgainstSchema(t *testing.T, schema *jsonschema.Schema, data []byte) error {
+	t.Helper()
+	document, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return schema.Validate(document)
+}
+
+func TestFixturesValidateAgainstPublishedSchemas(t *testing.T) {
+	requestSchema := compileSchema(t, "validation-request.schema.json")
+	assessmentSchema := compileSchema(t, "assessment.schema.json")
+	suiteSchema := compileSchema(t, "conformance-suite.schema.json")
+	manifestSchema := compileSchema(t, "package-manifest.schema.json")
+
+	positives := []struct {
+		schema *jsonschema.Schema
+		data   []byte
+	}{
+		{schema: requestSchema, data: fixture(t, "request.json")},
+		{schema: assessmentSchema, data: fixture(t, "assessment-valid.json")},
+		{schema: assessmentSchema, data: fixture(t, "assessment-non-conforming.json")},
+		{schema: suiteSchema, data: fixture(t, "suite.json")},
+	}
+	manifestData, err := os.ReadFile(filepath.Join("..", "..", "fixtures", "tracer", "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	positives = append(positives, struct {
+		schema *jsonschema.Schema
+		data   []byte
+	}{schema: manifestSchema, data: manifestData})
+	for index, positive := range positives {
+		if err := validateAgainstSchema(t, positive.schema, positive.data); err != nil {
+			t.Errorf("positive fixture %d fails its published schema: %v", index, err)
+		}
+	}
+
+	negatives := []struct {
+		schema  *jsonschema.Schema
+		fixture string
+	}{
+		{schema: assessmentSchema, fixture: "invalid-conforms-with-violations.json"},
+		{schema: assessmentSchema, fixture: "invalid-missing-message.json"},
+		{schema: assessmentSchema, fixture: "invalid-vector-outcome-mismatch.json"},
+		{schema: suiteSchema, fixture: "invalid-suite-missing-boundary.json"},
+		{schema: suiteSchema, fixture: "invalid-suite-category-mismatch.json"},
+	}
+	for _, negative := range negatives {
+		if err := validateAgainstSchema(t, negative.schema, fixture(t, negative.fixture)); err == nil {
+			t.Errorf("negative fixture %s passes the published schema", negative.fixture)
+		}
+	}
+}
+
+func TestNormalizedDocumentsSatisfyPublishedSchemas(t *testing.T) {
+	requestSchema := compileSchema(t, "validation-request.schema.json")
+	assessmentSchema := compileSchema(t, "assessment.schema.json")
+	suiteSchema := compileSchema(t, "conformance-suite.schema.json")
+
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Evidence = []EvidenceRef{}
+	request.Requirements = []string{}
+	normalizedRequest, err := NormalizeRequest(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateAgainstSchema(t, requestSchema, normalizedRequest); err != nil {
+		t.Errorf("normalized request violates its schema: %v", err)
+	}
+
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	normalizedAssessment, err := NormalizeAssessment(assessment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateAgainstSchema(t, assessmentSchema, normalizedAssessment); err != nil {
+		t.Errorf("normalized assessment violates its schema: %v", err)
+	}
+
+	suite, err := DecodeSuite(fixture(t, "suite.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	normalizedSuite, err := NormalizeSuite(suite)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateAgainstSchema(t, suiteSchema, normalizedSuite); err != nil {
+		t.Errorf("normalized suite violates its schema: %v", err)
 	}
 }
 

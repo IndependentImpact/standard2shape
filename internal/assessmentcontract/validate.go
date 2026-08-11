@@ -11,7 +11,9 @@ import (
 func validateRequest(request Request) []contract.Diagnostic {
 	var diagnostics []contract.Diagnostic
 	prefix := "request"
-	if request.RequestVersion != RequestVersionV01 {
+	if request.RequestVersion == "" {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", "requestVersion", "field is required"))
+	} else if request.RequestVersion != RequestVersionV01 {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".version.unsupported", "requestVersion", "supported request version is %s, got %q", RequestVersionV01, request.RequestVersion))
 	}
 	diagnostics = append(diagnostics, checkPackageRef(prefix, "package", request.Package)...)
@@ -62,21 +64,17 @@ func validateRequest(request Request) []contract.Diagnostic {
 func validateAssessment(assessment Assessment) []contract.Diagnostic {
 	var diagnostics []contract.Diagnostic
 	prefix := "assessment"
-	if assessment.AssessmentVersion != AssessmentVersionV01 {
+	if assessment.AssessmentVersion == "" {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", "assessmentVersion", "field is required"))
+	} else if assessment.AssessmentVersion != AssessmentVersionV01 {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".version.unsupported", "assessmentVersion", "supported assessment version is %s, got %q", AssessmentVersionV01, assessment.AssessmentVersion))
 	}
 	diagnostics = append(diagnostics, checkPackageRef(prefix, "package", assessment.Package)...)
 	diagnostics = append(diagnostics, checkEntityRef(prefix, "reasoningProfile", assessment.ReasoningProfile)...)
 	diagnostics = append(diagnostics, checkEntityRef(prefix, "evaluator", assessment.Evaluator)...)
-	startedValid := contract.IsTimestamp(assessment.StartedAt)
-	completedValid := contract.IsTimestamp(assessment.CompletedAt)
-	if !startedValid {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".timestamp.invalid", "startedAt", "expected an RFC 3339 UTC instant, got %q", assessment.StartedAt))
-	}
-	if !completedValid {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".timestamp.invalid", "completedAt", "expected an RFC 3339 UTC instant, got %q", assessment.CompletedAt))
-	}
-	if startedValid && completedValid {
+	diagnostics = append(diagnostics, checkTimestampField(prefix, "startedAt", assessment.StartedAt)...)
+	diagnostics = append(diagnostics, checkTimestampField(prefix, "completedAt", assessment.CompletedAt)...)
+	if contract.IsTimestamp(assessment.StartedAt) && contract.IsTimestamp(assessment.CompletedAt) {
 		started, _ := time.Parse(time.RFC3339Nano, assessment.StartedAt)
 		completed, _ := time.Parse(time.RFC3339Nano, assessment.CompletedAt)
 		if completed.Before(started) {
@@ -102,6 +100,10 @@ func validateAssessment(assessment Assessment) []contract.Diagnostic {
 func validateResult(location string, result CheckResult) []contract.Diagnostic {
 	var diagnostics []contract.Diagnostic
 	prefix := "assessment"
+	if result.Check == "" {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".check", "field is required"))
+		return diagnostics
+	}
 	if !isCheck(result.Check) {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".check.invalid", location+".check", "unknown check %q", result.Check))
 		return diagnostics
@@ -109,8 +111,16 @@ func validateResult(location string, result CheckResult) []contract.Diagnostic {
 	failureOutcome := false
 	switch result.Outcome {
 	case OutcomeConforms, OutcomeNonConforms:
-	case OutcomeEvaluatorFailure, OutcomeUnsupported, OutcomeIndeterminate:
+	case OutcomeEvaluatorFailure, OutcomeUnsupported:
 		failureOutcome = true
+	case OutcomeIndeterminate:
+		failureOutcome = true
+		if result.Check != CheckSemanticApplicability && result.Check != CheckQuantitativeApplicability {
+			diagnostics = append(diagnostics, contract.Diag(prefix+".result.outcome_forbidden", location+".outcome", "indeterminate is only defined for applicability checks"))
+		}
+	case "":
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".outcome", "field is required"))
+		return diagnostics
 	default:
 		diagnostics = append(diagnostics, contract.Diag(prefix+".outcome.invalid", location+".outcome", "unknown outcome %q", result.Outcome))
 		return diagnostics
@@ -190,8 +200,10 @@ func validateVectorResult(location string, result CheckResult, failureOutcome bo
 	var diagnostics []contract.Diagnostic
 	prefix := "assessment"
 	vector := result.Vector
-	if !contract.IsIRI(vector.ID) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".iri.invalid", location+".id", "expected an absolute IRI, got %q", vector.ID))
+	diagnostics = append(diagnostics, checkIRIField(prefix, location+".id", vector.ID)...)
+	if vector.Expected == "" {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".expected", "field is required"))
+		return diagnostics
 	}
 	if vector.Expected != OutcomeConforms && vector.Expected != OutcomeNonConforms {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".result.vector_expected_invalid", location+".expected", "expected must be conforms or non-conforms"))
@@ -221,12 +233,11 @@ func validateVectorResult(location string, result CheckResult, failureOutcome bo
 }
 
 func validateViolation(location string, violation Violation) []contract.Diagnostic {
-	var diagnostics []contract.Diagnostic
 	prefix := "assessment"
-	if !contract.IsIRI(violation.Requirement) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".iri.invalid", location+".requirement", "expected an absolute IRI, got %q", violation.Requirement))
-	}
-	if violation.Severity != "violation" && violation.Severity != "warning" && violation.Severity != "info" {
+	diagnostics := checkIRIField(prefix, location+".requirement", violation.Requirement)
+	if violation.Severity == "" {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".severity", "field is required"))
+	} else if violation.Severity != "violation" && violation.Severity != "warning" && violation.Severity != "info" {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".severity.invalid", location+".severity", "severity must be violation, warning, or info"))
 	}
 	if strings.TrimSpace(violation.Message) == "" {
@@ -241,7 +252,9 @@ func validateViolation(location string, violation Violation) []contract.Diagnost
 func validateSuite(suite Suite) []contract.Diagnostic {
 	var diagnostics []contract.Diagnostic
 	prefix := "suite"
-	if suite.SuiteVersion != SuiteVersionV01 {
+	if suite.SuiteVersion == "" {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", "suiteVersion", "field is required"))
+	} else if suite.SuiteVersion != SuiteVersionV01 {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".version.unsupported", "suiteVersion", "supported suite version is %s, got %q", SuiteVersionV01, suite.SuiteVersion))
 	}
 	diagnostics = append(diagnostics, checkPackageRef(prefix, "package", suite.Package)...)
@@ -249,21 +262,31 @@ func validateSuite(suite Suite) []contract.Diagnostic {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", "vectors", "at least one conformance vector is required"))
 	}
 	seen := map[string]bool{}
-	categories := map[string]bool{}
+	categoriesByRequirement := map[string]map[string]bool{}
 	for index, vector := range suite.Vectors {
 		location := fmt.Sprintf("vectors[%d]", index)
-		if !contract.IsIRI(vector.ID) {
-			diagnostics = append(diagnostics, contract.Diag(prefix+".iri.invalid", location+".id", "expected an absolute IRI, got %q", vector.ID))
-		}
+		diagnostics = append(diagnostics, checkIRIField(prefix, location+".id", vector.ID)...)
+		diagnostics = append(diagnostics, checkIRIField(prefix, location+".requirement", vector.Requirement)...)
 		if seen[vector.ID] {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".vector.duplicate", location+".id", "vector is declared more than once"))
 		}
 		seen[vector.ID] = true
+		if vector.Category == "" {
+			diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".category", "field is required"))
+			continue
+		}
 		if vector.Category != "valid" && vector.Category != "invalid" && vector.Category != "boundary" {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".category.invalid", location+".category", "category must be valid, invalid, or boundary"))
 			continue
 		}
-		categories[vector.Category] = true
+		if categoriesByRequirement[vector.Requirement] == nil {
+			categoriesByRequirement[vector.Requirement] = map[string]bool{}
+		}
+		categoriesByRequirement[vector.Requirement][vector.Category] = true
+		if vector.Expected == "" {
+			diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".expected", "field is required"))
+			continue
+		}
 		if vector.Expected != OutcomeConforms && vector.Expected != OutcomeNonConforms {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".expected.invalid", location+".expected", "expected must be conforms or non-conforms"))
 			continue
@@ -275,49 +298,64 @@ func validateSuite(suite Suite) []contract.Diagnostic {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".category.expected_mismatch", location, "an invalid vector must expect non-conforms"))
 		}
 	}
-	if len(suite.Vectors) > 0 {
+	for requirement, categories := range categoriesByRequirement {
 		for _, category := range []string{"valid", "invalid", "boundary"} {
 			if !categories[category] {
-				diagnostics = append(diagnostics, contract.Diag(prefix+".category.missing", "vectors", "suite has no %s vector", category))
+				diagnostics = append(diagnostics, contract.Diag(prefix+".category.missing", "vectors", "requirement %s has no %s vector", requirement, category))
 			}
 		}
 	}
 	return diagnostics
 }
 
+// Absent required members decode to Go zero values; the documented contract
+// reports them as <prefix>.field.required, never as a value-format error.
+func checkField(prefix, location, value string, valid func(string) bool, code, format string) []contract.Diagnostic {
+	if value == "" {
+		return []contract.Diagnostic{contract.Diag(prefix+".field.required", location, "field is required")}
+	}
+	if !valid(value) {
+		return []contract.Diagnostic{contract.Diag(prefix+"."+code, location, format, value)}
+	}
+	return nil
+}
+
+func checkIRIField(prefix, location, value string) []contract.Diagnostic {
+	return checkField(prefix, location, value, contract.IsIRI, "iri.invalid", "expected an absolute IRI, got %q")
+}
+
+func checkVersionField(prefix, location, value string) []contract.Diagnostic {
+	return checkField(prefix, location, value, contract.IsVersion, "version.invalid", "expected semantic version, got %q")
+}
+
+func checkDigestField(prefix, location, value string) []contract.Diagnostic {
+	return checkField(prefix, location, value, contract.IsDigest, "digest.invalid", "expected lowercase sha256 digest, got %q")
+}
+
+func checkPathField(prefix, location, value string) []contract.Diagnostic {
+	return checkField(prefix, location, value, contract.IsNormalizedPath, "path.invalid", "expected a normalized POSIX package-relative path, got %q")
+}
+
+func checkTimestampField(prefix, location, value string) []contract.Diagnostic {
+	return checkField(prefix, location, value, contract.IsTimestamp, "timestamp.invalid", "expected an RFC 3339 UTC instant, got %q")
+}
+
 func checkPackageRef(prefix, location string, ref PackageRef) []contract.Diagnostic {
-	var diagnostics []contract.Diagnostic
-	if !contract.IsIRI(ref.ID) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".iri.invalid", location+".id", "expected an absolute IRI, got %q", ref.ID))
-	}
-	if !contract.IsVersion(ref.Version) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".version.invalid", location+".version", "expected semantic version, got %q", ref.Version))
-	}
-	if !contract.IsDigest(ref.Digest) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".digest.invalid", location+".digest", "expected lowercase sha256 digest"))
-	}
+	diagnostics := checkIRIField(prefix, location+".id", ref.ID)
+	diagnostics = append(diagnostics, checkVersionField(prefix, location+".version", ref.Version)...)
+	diagnostics = append(diagnostics, checkDigestField(prefix, location+".digest", ref.Digest)...)
 	return diagnostics
 }
 
 func checkEntityRef(prefix, location string, ref EntityRef) []contract.Diagnostic {
-	var diagnostics []contract.Diagnostic
-	if !contract.IsIRI(ref.ID) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".iri.invalid", location+".id", "expected an absolute IRI, got %q", ref.ID))
-	}
-	if !contract.IsVersion(ref.Version) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".version.invalid", location+".version", "expected semantic version, got %q", ref.Version))
-	}
+	diagnostics := checkIRIField(prefix, location+".id", ref.ID)
+	diagnostics = append(diagnostics, checkVersionField(prefix, location+".version", ref.Version)...)
 	return diagnostics
 }
 
 func checkEvidenceRef(prefix, location string, ref EvidenceRef) []contract.Diagnostic {
-	var diagnostics []contract.Diagnostic
-	if !contract.IsNormalizedPath(ref.Path) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".path.invalid", location+".path", "expected a normalized POSIX package-relative path, got %q", ref.Path))
-	}
-	if !contract.IsDigest(ref.Digest) {
-		diagnostics = append(diagnostics, contract.Diag(prefix+".digest.invalid", location+".digest", "expected lowercase sha256 digest"))
-	}
+	diagnostics := checkPathField(prefix, location+".path", ref.Path)
+	diagnostics = append(diagnostics, checkDigestField(prefix, location+".digest", ref.Digest)...)
 	return diagnostics
 }
 

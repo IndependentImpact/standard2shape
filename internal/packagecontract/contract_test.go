@@ -99,24 +99,31 @@ func TestManifestRequiresImportAndReferenceArrays(t *testing.T) {
 		t.Fatal(err)
 	}
 	delete(fields, "imports")
-	fields["references"] = json.RawMessage("null")
 	stripped, err := json.Marshal(fields)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	manifest, err := decodeManifest(stripped)
 	if err != nil {
 		t.Fatal(err)
 	}
 	diagnostics := validateManifest(manifest)
-	for _, location := range []string{"imports", "references"} {
-		found := slices.ContainsFunc(diagnostics, func(d Diagnostic) bool {
-			return d.Code == "manifest.field.required" && d.Location == location
-		})
-		if !found {
-			t.Fatalf("missing %s diagnostic %q in %#v", location, "manifest.field.required", diagnostics)
-		}
+	found := slices.ContainsFunc(diagnostics, func(d Diagnostic) bool {
+		return d.Code == "manifest.field.required" && d.Location == "imports"
+	})
+	if !found {
+		t.Fatalf("missing imports diagnostic %q in %#v", "manifest.field.required", diagnostics)
+	}
+
+	fields["references"] = json.RawMessage("null")
+	nullified, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = decodeManifest(nullified)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.field.null") {
+		t.Fatalf("expected explicit-null diagnostic, got %v", err)
 	}
 }
 

@@ -47,7 +47,7 @@ var (
 	suiteSpec = contract.ObjectSpec{
 		"suiteVersion": nil,
 		"package":      packageRefSpec,
-		"vectors":      contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "category": nil, "expected": nil}},
+		"vectors":      contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "requirement": nil, "category": nil, "expected": nil}},
 	}
 )
 
@@ -184,7 +184,7 @@ func resultKey(result CheckResult) string {
 }
 
 func violationKey(violation Violation) string {
-	return violation.Requirement + "\x00" + violation.Focus + "\x00" + violation.Path + "\x00" + violation.Source + "\x00" + violation.Message
+	return violation.Requirement + "\x00" + violation.Severity + "\x00" + violation.Focus + "\x00" + violation.Path + "\x00" + violation.Source + "\x00" + violation.Message
 }
 
 func marshalContract(value any) ([]byte, error) {

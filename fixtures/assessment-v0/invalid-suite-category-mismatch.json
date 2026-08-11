@@ -8,16 +8,19 @@
   "vectors": [
     {
       "id": "https://example.org/standards/demo/tests/complete-project",
+      "requirement": "https://example.org/standard/ProjectTitleShape",
       "category": "valid",
       "expected": "non-conforms"
     },
     {
       "id": "https://example.org/standards/demo/tests/missing-title",
+      "requirement": "https://example.org/standard/ProjectTitleShape",
       "category": "invalid",
       "expected": "non-conforms"
     },
     {
       "id": "https://example.org/standards/demo/tests/single-character-title",
+      "requirement": "https://example.org/standard/ProjectTitleShape",
       "category": "boundary",
       "expected": "conforms"
     }

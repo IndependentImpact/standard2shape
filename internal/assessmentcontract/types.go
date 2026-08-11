@@ -95,9 +95,10 @@ type Assessment struct {
 }
 
 type SuiteVector struct {
-	ID       string `json:"id"`
-	Category string `json:"category"`
-	Expected string `json:"expected"`
+	ID          string `json:"id"`
+	Requirement string `json:"requirement"`
+	Category    string `json:"category"`
+	Expected    string `json:"expected"`
 }
 
 type Suite struct {

@@ -148,6 +148,10 @@
           "then": { "not": { "required": ["requirement"] } }
         },
         {
+          "if": { "properties": { "check": { "enum": ["syntax", "package-structure", "shacl", "reasoning-profile", "test-vectors"] } } },
+          "then": { "properties": { "outcome": { "not": { "const": "indeterminate" } } } }
+        },
+        {
           "if": { "properties": { "outcome": { "enum": ["evaluator-failure", "unsupported", "indeterminate"] } } },
           "then": {
             "required": ["message"],

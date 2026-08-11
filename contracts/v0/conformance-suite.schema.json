@@ -36,9 +36,10 @@
     "vector": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "category", "expected"],
+      "required": ["id", "requirement", "category", "expected"],
       "properties": {
         "id": { "$ref": "#/$defs/iri" },
+        "requirement": { "$ref": "#/$defs/iri" },
         "category": { "enum": ["valid", "invalid", "boundary"] },
         "expected": { "enum": ["conforms", "non-conforms"] }
       },

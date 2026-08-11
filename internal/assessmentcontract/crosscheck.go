@@ -9,7 +9,9 @@ import (
 
 // CheckAgainstRequest verifies that an assessment answers exactly the given
 // request: same package and reasoning profile, at least one result for every
-// requested check, and no results for checks that were not requested.
+// requested check and requirement, no results for checks or requirements that
+// were not requested, and evidence attestations that neither drop nor
+// substitute the requested evidence.
 func CheckAgainstRequest(request Request, assessment Assessment) error {
 	var diagnostics []contract.Diagnostic
 	if assessment.Package != request.Package {
@@ -18,20 +20,59 @@ func CheckAgainstRequest(request Request, assessment Assessment) error {
 	if assessment.ReasoningProfile != request.ReasoningProfile {
 		diagnostics = append(diagnostics, contract.Diag("assessment.request.profile_mismatch", "reasoningProfile", "assessment used reasoning profile %s@%s, request named %s@%s", assessment.ReasoningProfile.ID, assessment.ReasoningProfile.Version, request.ReasoningProfile.ID, request.ReasoningProfile.Version))
 	}
-	requested := map[string]bool{}
+	requestedChecks := map[string]bool{}
 	for _, check := range request.Checks {
-		requested[check] = true
+		requestedChecks[check] = true
 	}
-	answered := map[string]bool{}
+	requestedRequirements := map[string]bool{}
+	for _, requirement := range request.Requirements {
+		requestedRequirements[requirement] = true
+	}
+	requestedEvidence := map[string]string{}
+	for _, evidence := range request.Evidence {
+		requestedEvidence[evidence.Path] = evidence.Digest
+	}
+
+	answeredChecks := map[string]bool{}
+	answeredRequirements := map[string]bool{}
+	attestedEvidence := map[string]bool{}
 	for index, result := range assessment.Results {
-		if !requested[result.Check] {
-			diagnostics = append(diagnostics, contract.Diag("assessment.request.check_unrequested", fmt.Sprintf("results[%d]", index), "check %s was not requested", result.Check))
+		location := fmt.Sprintf("results[%d]", index)
+		if !requestedChecks[result.Check] {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.check_unrequested", location, "check %s was not requested", result.Check))
 		}
-		answered[result.Check] = true
+		answeredChecks[result.Check] = true
+		if result.Requirement != nil {
+			if !requestedRequirements[result.Requirement.ID] {
+				diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_unrequested", location+".requirement", "requirement %s was not requested", result.Requirement.ID))
+			}
+			answeredRequirements[result.Requirement.ID] = true
+		}
+		for evidenceIndex, evidence := range result.EvidenceChecked {
+			expected, requested := requestedEvidence[evidence.Path]
+			if !requested {
+				continue
+			}
+			if evidence.Digest != expected {
+				diagnostics = append(diagnostics, contract.Diag("assessment.request.evidence_mismatch", fmt.Sprintf("%s.evidenceChecked[%d]", location, evidenceIndex), "evidence %s was attested with digest %s, request pinned %s", evidence.Path, evidence.Digest, expected))
+				continue
+			}
+			attestedEvidence[evidence.Path] = true
+		}
 	}
 	for _, check := range request.Checks {
-		if !answered[check] {
+		if !answeredChecks[check] {
 			diagnostics = append(diagnostics, contract.Diag("assessment.request.check_missing", "results", "requested check %s has no result", check))
+		}
+	}
+	for _, requirement := range request.Requirements {
+		if !answeredRequirements[requirement] {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_missing", "results", "requested requirement %s has no result", requirement))
+		}
+	}
+	for _, evidence := range request.Evidence {
+		if !attestedEvidence[evidence.Path] {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.evidence_missing", "results", "requested evidence %s was not attested by any result", evidence.Path))
 		}
 	}
 	return contract.ErrorFor(diagnostics)
