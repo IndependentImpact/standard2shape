@@ -163,7 +163,7 @@ var (
 		"references":         contract.ArraySpec{Element: contract.ObjectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
 		"requirements":       contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "version": nil, "kind": nil, "digest": nil, "source": nil}},
 		"reasoningProfile":   versionedEntitySpec,
-		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "requirement": nil, "path": nil, "digest": nil, "expected": nil}},
+		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "requirement": nil, "category": nil, "path": nil, "digest": nil, "expected": nil}},
 	}
 )
 
@@ -262,12 +262,16 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		referenceKeys[key] = true
 	}
 
-	if len(manifest.Requirements) == 0 {
-		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "requirements", "at least one executable requirement is required"))
+	if manifest.Requirements == nil {
+		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "requirements", "requirements must be an array, possibly empty"))
+	}
+	shapeIdentities := map[string]bool{}
+	for _, shape := range manifest.CanonicalShapes {
+		shapeIdentities[shape.ID] = true
 	}
 	canonicalIdentities := map[string]bool{}
-	for _, shape := range manifest.CanonicalShapes {
-		canonicalIdentities[shape.ID] = true
+	for shape := range shapeIdentities {
+		canonicalIdentities[shape] = true
 	}
 	for _, reference := range manifest.References {
 		canonicalIdentities[reference.ID] = true
@@ -293,7 +297,7 @@ func validateManifest(manifest Manifest) []Diagnostic {
 
 	vectorPaths := map[string]ConformanceVector{}
 	vectorIDs := map[string]bool{}
-	vectorsByRequirement := map[string]map[string]int{}
+	categoriesByTarget := map[string]map[string]bool{}
 	for index, vector := range manifest.ConformanceVectors {
 		location := fmt.Sprintf("conformanceVectors[%d]", index)
 		diagnostics = append(diagnostics, validateIRI(location+".id", vector.ID)...)
@@ -301,13 +305,26 @@ func validateManifest(manifest Manifest) []Diagnostic {
 			diagnostics = append(diagnostics, diagnostic("manifest.field.required", location+".name", "vector name is required"))
 		}
 		diagnostics = append(diagnostics, validateIRI(location+".requirement", vector.Requirement)...)
-		if vector.Requirement != "" && !declaredRequirements[vector.Requirement] {
-			diagnostics = append(diagnostics, diagnostic("manifest.vector.requirement_unknown", location+".requirement", "requirement %s is not a declared executable requirement", vector.Requirement))
+		if vector.Requirement != "" && !declaredRequirements[vector.Requirement] && !shapeIdentities[vector.Requirement] {
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.requirement_unknown", location+".requirement", "requirement %s is not a declared executable requirement or canonical shape", vector.Requirement))
 		}
-		if vectorsByRequirement[vector.Requirement] == nil {
-			vectorsByRequirement[vector.Requirement] = map[string]int{}
+		switch vector.Category {
+		case "valid":
+			if vector.Expected != "conforms" {
+				diagnostics = append(diagnostics, diagnostic("manifest.vector.category_mismatch", location, "a valid vector must expect conforms"))
+			}
+		case "invalid":
+			if vector.Expected != "non-conforms" {
+				diagnostics = append(diagnostics, diagnostic("manifest.vector.category_mismatch", location, "an invalid vector must expect non-conforms"))
+			}
+		case "boundary":
+		default:
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.category_invalid", location+".category", "category must be valid, invalid, or boundary"))
 		}
-		vectorsByRequirement[vector.Requirement][vector.Expected]++
+		if categoriesByTarget[vector.Requirement] == nil {
+			categoriesByTarget[vector.Requirement] = map[string]bool{}
+		}
+		categoriesByTarget[vector.Requirement][vector.Category] = true
 		diagnostics = append(diagnostics, validatePath(location+".path", vector.Path)...)
 		diagnostics = append(diagnostics, validateDigest(location+".digest", vector.Digest)...)
 		if vector.Expected != "conforms" && vector.Expected != "non-conforms" {
@@ -332,14 +349,29 @@ func validateManifest(manifest Manifest) []Diagnostic {
 	}
 
 	// SPEC: every executable requirement has mandatory valid, invalid, and
-	// boundary test vectors, which at manifest level means at least three
-	// vectors including both expected outcomes; the suite contract binds the
+	// boundary test vectors. The same completeness applies to any canonical
+	// shape a vector targets: a tested target is tested in all three
 	// categories.
-	for index, requirement := range manifest.Requirements {
-		counts := vectorsByRequirement[requirement.ID]
-		if counts["conforms"]+counts["non-conforms"] < 3 || counts["conforms"] == 0 || counts["non-conforms"] == 0 {
-			diagnostics = append(diagnostics, diagnostic("manifest.requirement.vectors_missing", fmt.Sprintf("requirements[%d]", index), "requirement %s needs at least three vectors covering both expected outcomes", requirement.ID))
+	checkCoverage := func(location, target string) {
+		categories := categoriesByTarget[target]
+		for _, category := range []string{"valid", "invalid", "boundary"} {
+			if !categories[category] {
+				diagnostics = append(diagnostics, diagnostic("manifest.requirement.vectors_missing", location, "vector target %s has no %s vector", target, category))
+			}
 		}
+	}
+	for index, requirement := range manifest.Requirements {
+		checkCoverage(fmt.Sprintf("requirements[%d]", index), requirement.ID)
+	}
+	shapeTargets := make([]string, 0, len(categoriesByTarget))
+	for target := range categoriesByTarget {
+		if !declaredRequirements[target] {
+			shapeTargets = append(shapeTargets, target)
+		}
+	}
+	sort.Strings(shapeTargets)
+	for _, target := range shapeTargets {
+		checkCoverage("conformanceVectors", target)
 	}
 	return diagnostics
 }

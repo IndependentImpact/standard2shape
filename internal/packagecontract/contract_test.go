@@ -324,6 +324,81 @@ func TestVectorRequirementsMustBeDeclaredIdentities(t *testing.T) {
 	}
 }
 
+func TestVectorCategoriesMustMatchExpectations(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	for index, vector := range manifest.ConformanceVectors {
+		if vector.Category == "invalid" {
+			manifest.ConformanceVectors[index].Expected = "conforms"
+		}
+	}
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.vector.category_mismatch") {
+		t.Fatalf("an invalid-category vector expecting conforms must be rejected, got %v", err)
+	}
+}
+
+func TestPackagesWithoutRequirementsAreAccepted(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = bytes.Replace(references, []byte(";\n  s2s:hasRequirement ex:ProjectTitleRequirement ."), []byte("."), 1)
+	references = bytes.Replace(references, []byte("\nex:ProjectTitleRequirement a s2s:SemanticRequirement ;\n  s2s:requirementVersion \"1.0.0\" ;\n  s2s:requirementDigest \"sha256:5555555555555555555555555555555555555555555555555555555555555555\" .\n"), []byte(""), 1)
+	if bytes.Contains(references, []byte("ProjectTitleRequirement")) {
+		t.Fatal("requirement record not fully removed from fixture copy")
+	}
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Requirements = []RequirementDeclaration{}
+	for index := range manifest.ConformanceVectors {
+		manifest.ConformanceVectors[index].Requirement = manifest.CanonicalShapes[0].ID
+	}
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Open(root); err != nil {
+		t.Fatalf("a shapes-only package with shape-targeted vectors must be accepted: %v", err)
+	}
+}
+
 func TestRequirementsNeedMandatoryVectorCoverage(t *testing.T) {
 	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
 	manifestPath := filepath.Join(root, "manifest.json")

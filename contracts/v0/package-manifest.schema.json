@@ -48,7 +48,6 @@
     },
     "requirements": {
       "type": "array",
-      "minItems": 1,
       "items": { "$ref": "#/$defs/requirement" }
     },
     "reasoningProfile": { "$ref": "#/$defs/versionedGraphEntity" },
@@ -132,15 +131,26 @@
     "vector": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "requirement", "path", "digest", "expected"],
+      "required": ["id", "name", "requirement", "category", "path", "digest", "expected"],
       "properties": {
         "id": { "$ref": "#/$defs/iri" },
         "name": { "type": "string", "minLength": 1, "pattern": "\\S" },
         "requirement": { "$ref": "#/$defs/iri" },
+        "category": { "enum": ["valid", "invalid", "boundary"] },
         "path": { "$ref": "#/$defs/path" },
         "digest": { "$ref": "#/$defs/digest" },
         "expected": { "enum": ["conforms", "non-conforms"] }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "category": { "const": "valid" } } },
+          "then": { "properties": { "expected": { "const": "conforms" } } }
+        },
+        {
+          "if": { "properties": { "category": { "const": "invalid" } } },
+          "then": { "properties": { "expected": { "const": "non-conforms" } } }
+        }
+      ]
     }
   }
 }

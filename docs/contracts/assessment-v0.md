@@ -43,7 +43,7 @@ An assessment answers exactly its request against its package, and the request i
 
 ## Conformance suite
 
-A suite categorizes a package's conformance vectors as `valid`, `invalid`, or `boundary`, each naming the executable requirement it exercises. The requirement labels are not self-declared: the package manifest canonically binds each vector to a declared methodology-owned executable requirement, and a suite whose labels differ from the manifest is rejected. Coverage is per requirement and measured against the manifest: every requirement the manifest's vectors declare must have at least one suite vector of each category, so no executable requirement ships without valid, invalid, and boundary cases. Valid vectors expect `conforms`, invalid vectors expect `non-conforms`, and boundary vectors pin the decided outcome at the requirement's edge. A suite covers its package exactly: every manifest vector appears once, with the manifest's expected outcome.
+A suite presents a package's conformance vectors as `valid`, `invalid`, or `boundary` cases, each naming the target it exercises. Nothing in the suite is discretionary: the package manifest canonically binds each vector's target, category, and expected outcome, all covered by the normalized-manifest digest, and a suite whose labels, categories, or expectations differ from the manifest is rejected. Coverage is per target and enforced in the manifest itself: every declared executable requirement and every tested canonical shape carries valid, invalid, and boundary vectors. Boundary vectors pin the decided outcome at the target's edge. A suite covers its package exactly: every manifest vector appears once.
 
 ## Semantic equivalence
 
@@ -66,7 +66,7 @@ Contract errors reuse the package-contract diagnostic form: stable code, locatio
 - `assessment.result.requirement_required` / `.requirement_forbidden` — requirement identity coupling;
 - `assessment.timestamp.invalid` / `.timestamp.order` — timestamps that are not RFC 3339 UTC instants or run backwards;
 - `suite.category.invalid` / `.category.missing` / `.category.expected_mismatch` — per-requirement category coverage and expectation coupling;
-- `suite.vector.duplicate` / `.vector.unknown` / `.vector.missing` / `.vector.expected_mismatch` / `.vector.requirement_mismatch` — suite/package coverage and manifest binding;
+- `suite.vector.duplicate` / `.vector.unknown` / `.vector.missing` / `.vector.expected_mismatch` / `.vector.requirement_mismatch` / `.vector.category_mismatch` — suite/package coverage and manifest binding;
 - `assessment.request.package_unbound` / `.profile_unbound` / `.requirement_unknown` / `.requirement_uncheckable` / `.check_unanswerable` — a request that is not bound to the supplied package or cannot be answered against it;
 - `assessment.request.package_mismatch` / `.profile_mismatch` / `.check_missing` / `.check_unrequested` / `.requirement_missing` / `.requirement_unrequested` / `.requirement_kind_mismatch` / `.requirement_version_mismatch` / `.violation_requirement_unknown` / `.violation_requirement_mismatch` / `.evidence_missing` / `.evidence_mismatch` / `.evidence_unknown` / `.vector_missing` / `.vector_unknown` / `.vector_expected_mismatch` — an assessment that does not answer its request against its package.
 

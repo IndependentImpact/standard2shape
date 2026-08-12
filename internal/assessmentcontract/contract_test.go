@@ -286,6 +286,30 @@ func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
 	}
 }
 
+func TestSuiteCategoriesAreBoundToTheManifest(t *testing.T) {
+	suite, err := DecodeSuite(fixture(t, "suite.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index, vector := range suite.Vectors {
+		switch vector.Category {
+		case "valid":
+			suite.Vectors[index].Category = "boundary"
+		case "boundary":
+			suite.Vectors[index].Category = "valid"
+		}
+	}
+	err = CheckSuiteAgainstPackage(suite, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "suite.vector.category_mismatch") {
+		t.Fatalf("recategorizing vectors against the manifest must be rejected, got %v", err)
+	}
+}
+
 func TestSuiteRequirementLabelsAreBoundToTheManifest(t *testing.T) {
 	suite, err := DecodeSuite(fixture(t, "suite.json"))
 	if err != nil {

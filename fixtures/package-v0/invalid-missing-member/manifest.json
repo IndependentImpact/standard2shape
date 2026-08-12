@@ -48,6 +48,7 @@
       "id": "https://example.org/tests/missing-valid",
       "name": "missing valid case",
       "requirement": "https://example.org/MissingRequirement",
+      "category": "valid",
       "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -56,6 +57,7 @@
       "id": "https://example.org/tests/missing-boundary",
       "name": "missing boundary case",
       "requirement": "https://example.org/MissingRequirement",
+      "category": "boundary",
       "path": "data-boundary.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -64,6 +66,7 @@
       "id": "https://example.org/tests/missing-invalid",
       "name": "missing invalid case",
       "requirement": "https://example.org/MissingRequirement",
+      "category": "invalid",
       "path": "data-invalid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "non-conforms"

@@ -225,6 +225,9 @@ func CheckSuiteAgainstPackage(suite Suite, pkg packagecontract.Package) error {
 		if vector.Requirement != declaredVector.Requirement {
 			diagnostics = append(diagnostics, contract.Diag("suite.vector.requirement_mismatch", location+".requirement", "vector %s exercises requirement %s in the manifest", vector.ID, declaredVector.Requirement))
 		}
+		if vector.Category != declaredVector.Category {
+			diagnostics = append(diagnostics, contract.Diag("suite.vector.category_mismatch", location+".category", "vector %s is categorized %s in the manifest", vector.ID, declaredVector.Category))
+		}
 		covered[vector.ID] = true
 		if categoriesByRequirement[declaredVector.Requirement] == nil {
 			categoriesByRequirement[declaredVector.Requirement] = map[string]bool{}

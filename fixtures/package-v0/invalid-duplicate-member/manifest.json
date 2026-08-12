@@ -54,6 +54,7 @@
       "id": "https://example.org/tests/duplicate-valid",
       "name": "duplicate valid case",
       "requirement": "https://example.org/DuplicateRequirement",
+      "category": "valid",
       "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -62,6 +63,7 @@
       "id": "https://example.org/tests/duplicate-boundary",
       "name": "duplicate boundary case",
       "requirement": "https://example.org/DuplicateRequirement",
+      "category": "boundary",
       "path": "data-boundary.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -70,6 +72,7 @@
       "id": "https://example.org/tests/duplicate-invalid",
       "name": "duplicate invalid case",
       "requirement": "https://example.org/DuplicateRequirement",
+      "category": "invalid",
       "path": "data-invalid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "non-conforms"

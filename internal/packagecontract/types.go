@@ -67,6 +67,7 @@ type ConformanceVector struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Requirement string `json:"requirement"`
+	Category    string `json:"category"`
 	Path        string `json:"path"`
 	Digest      string `json:"digest"`
 	Expected    string `json:"expected"`
