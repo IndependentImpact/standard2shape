@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/IndependentImpact/standard2shape/internal/contract"
@@ -153,8 +152,8 @@ func TestNormalizationOrdersBySeverity(t *testing.T) {
 }
 
 func TestExplicitNullFieldsAreRejected(t *testing.T) {
-	data := fixture(t, "assessment-valid.json")
-	nullified := bytes.Replace(data, []byte(`"message": "no quantitative evaluation binding is available to this evaluator"`), []byte(`"message": null`), 1)
+	data := fixture(t, "assessment-non-conforming.json")
+	nullified := bytes.Replace(data, []byte(`"message": "the evidence does not describe the project scope this requirement constrains"`), []byte(`"message": null`), 1)
 	_, err := DecodeAssessment(nullified)
 	var contractErr *contract.Error
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.field.null") {
@@ -241,7 +240,7 @@ func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
 
 	dropped := assessment
 	dropped.Results = slices.DeleteFunc(append([]CheckResult{}, assessment.Results...), func(result CheckResult) bool {
-		return result.Check == CheckQuantitativeApplicability
+		return result.Check == CheckSemanticApplicability
 	})
 	err = CheckAgainstRequest(request, dropped, pkg)
 	var contractErr *contract.Error
@@ -373,8 +372,7 @@ func TestRequestedTestVectorsRequireCompleteResults(t *testing.T) {
 
 func TestApplicabilityRequestsRequireRequirements(t *testing.T) {
 	requestData := bytes.Replace(fixture(t, "request.json"), []byte(`"requirements": [
-    "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield",
-    "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope"
+    "https://example.org/standard/ProjectTitleShape"
   ]`), []byte(`"requirements": []`), 1)
 	_, err := DecodeRequest(requestData)
 	var contractErr *contract.Error
@@ -389,8 +387,8 @@ func TestApplicabilityRequestsRequireRequirements(t *testing.T) {
 
 func TestEmptyAndBlankStringsAgreeWithSchemas(t *testing.T) {
 	assessmentSchema := compileSchema(t, "assessment.schema.json")
-	base := fixture(t, "assessment-valid.json")
-	target := []byte(`"message": "no quantitative evaluation binding is available to this evaluator"`)
+	base := fixture(t, "assessment-non-conforming.json")
+	target := []byte(`"message": "the evidence does not describe the project scope this requirement constrains"`)
 
 	empty := bytes.Replace(base, target, []byte(`"message": ""`), 1)
 	_, err := DecodeAssessment(empty)
@@ -416,6 +414,105 @@ func TestEmptyAndBlankStringsAgreeWithSchemas(t *testing.T) {
 	}
 	if err := validateAgainstSchema(t, assessmentSchema, badIRI); err == nil {
 		t.Fatal("the schema must also reject a non-IRI evaluator id with format assertion")
+	}
+}
+
+func TestRequestMustBindToSuppliedPackage(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repinned := request
+	repinned.Package.Digest = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+	tampered := assessment
+	tampered.Package = repinned.Package
+	err = CheckAgainstRequest(repinned, tampered, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.package_unbound") {
+		t.Fatalf("a request pinned to a different package digest must be rejected, got %v", err)
+	}
+
+	reprofiled := request
+	reprofiled.ReasoningProfile = EntityRef{ID: "https://example.org/standard/OtherProfile", Version: "2.0.0"}
+	reprofiledAssessment := assessment
+	reprofiledAssessment.ReasoningProfile = reprofiled.ReasoningProfile
+	err = CheckAgainstRequest(reprofiled, reprofiledAssessment, pkg)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.profile_unbound") {
+		t.Fatalf("a request naming a foreign reasoning profile must be rejected, got %v", err)
+	}
+}
+
+func TestUnicodeBlankStringsAreRejected(t *testing.T) {
+	base := fixture(t, "assessment-non-conforming.json")
+	target := []byte(`"message": "the evidence does not describe the project scope this requirement constrains"`)
+	nbspOnly := bytes.Replace(base, target, []byte("\"message\": \"\u00a0\u00a0\""), 1)
+	_, err := DecodeAssessment(nbspOnly)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.result.message_required") {
+		t.Fatalf("a message of only Unicode whitespace must be blank under ECMA semantics, got %v", err)
+	}
+}
+
+func TestRequirementKindPairingIsEnforced(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results = append([]CheckResult{}, assessment.Results...)
+	for index, result := range assessment.Results {
+		if result.Check == CheckSemanticApplicability {
+			result.Check = CheckQuantitativeApplicability
+			result.Outcome = OutcomeUnsupported
+			result.Message = "swapped evaluator semantics"
+			result.EvidenceChecked = []EvidenceRef{}
+			assessment.Results[index] = result
+		}
+	}
+	err = CheckAgainstRequest(request, assessment, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.requirement_kind_mismatch") {
+		t.Fatalf("answering a semantic requirement with a quantitative check must be rejected, got %v", err)
+	}
+	if !hasDiagnostic(contractErr.Diagnostics, "assessment.request.requirement_missing") {
+		t.Fatalf("the swapped requirement must not count as answered, got %v", err)
+	}
+}
+
+func TestApplicabilityChecksNeedKindMatchedRequirements(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Checks = append(append([]string{}, request.Checks...), CheckQuantitativeApplicability)
+	err = CheckAgainstRequest(request, assessment, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.check_unanswerable") {
+		t.Fatalf("a quantitative check without a quantitative requirement must be rejected, got %v", err)
 	}
 }
 
@@ -453,12 +550,17 @@ func (adapter localAdapter) Evaluate(request Request) (Assessment, error) {
 		CheckResult{Check: CheckSHACL, Outcome: OutcomeConforms, Violations: []Violation{}, EvidenceChecked: append([]EvidenceRef{}, request.Evidence...)},
 		CheckResult{Check: CheckReasoningProfile, Outcome: OutcomeConforms, Violations: []Violation{}, EvidenceChecked: []EvidenceRef{{Path: pkg.Manifest.ReasoningProfile.Source, Digest: artifactDigests[pkg.Manifest.ReasoningProfile.Source]}}},
 	)
+	declarations := map[string]packagecontract.RequirementDeclaration{}
+	for _, declaration := range pkg.Manifest.Requirements {
+		declarations[declaration.ID] = declaration
+	}
 	for _, requirement := range request.Requirements {
-		if strings.Contains(requirement, "semantic") {
+		declaration := declarations[requirement]
+		if declaration.Kind == "semantic" {
 			assessment.Results = append(assessment.Results, CheckResult{
 				Check:           CheckSemanticApplicability,
 				Outcome:         OutcomeConforms,
-				Requirement:     &EntityRef{ID: requirement, Version: "1.0.0"},
+				Requirement:     &EntityRef{ID: declaration.ID, Version: declaration.Version},
 				Violations:      []Violation{},
 				EvidenceChecked: append([]EvidenceRef{}, request.Evidence...),
 			})
@@ -467,7 +569,7 @@ func (adapter localAdapter) Evaluate(request Request) (Assessment, error) {
 		assessment.Results = append(assessment.Results, CheckResult{
 			Check:           CheckQuantitativeApplicability,
 			Outcome:         OutcomeUnsupported,
-			Requirement:     &EntityRef{ID: requirement, Version: "1.0.0"},
+			Requirement:     &EntityRef{ID: declaration.ID, Version: declaration.Version},
 			Message:         "no quantitative evaluation binding is available to this evaluator",
 			Violations:      []Violation{},
 			EvidenceChecked: []EvidenceRef{},

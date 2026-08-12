@@ -35,6 +35,14 @@
   ],
   "imports": [],
   "references": [],
+  "requirements": [
+    {
+      "id": "https://example.org/ConflictShape",
+      "version": "1.0.0",
+      "kind": "semantic",
+      "source": "shared.ttl"
+    }
+  ],
   "reasoningProfile": {
     "id": "https://example.org/ConflictProfile",
     "version": "0.1.0",
@@ -42,12 +50,28 @@
   },
   "conformanceVectors": [
     {
-      "id": "https://example.org/tests/conflict",
-      "name": "conflicting member",
+      "id": "https://example.org/tests/conflict-valid",
+      "name": "conflict valid case",
       "requirement": "https://example.org/ConflictShape",
-      "path": "data.ttl",
+      "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
+    },
+    {
+      "id": "https://example.org/tests/conflict-boundary",
+      "name": "conflict boundary case",
+      "requirement": "https://example.org/ConflictShape",
+      "path": "data-boundary.ttl",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "conforms"
+    },
+    {
+      "id": "https://example.org/tests/conflict-invalid",
+      "name": "conflict invalid case",
+      "requirement": "https://example.org/ConflictShape",
+      "path": "data-invalid.ttl",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "non-conforms"
     }
   ]
 }

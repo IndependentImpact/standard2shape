@@ -8,15 +8,25 @@ import (
 )
 
 // CheckAgainstRequest verifies that an assessment answers exactly the given
-// request against the given package: same package and reasoning profile, at
-// least one result for every requested check and requirement, no results for
-// checks or requirements that were not requested, one result per declared
-// conformance vector when test-vectors was requested, and evidence
-// attestations that neither drop, substitute, nor invent evidence — every
-// attested path must be requested evidence or a declared package member,
-// under its pinned digest.
+// request against the given package. The request must itself be bound to the
+// supplied package by identity, version, normalized-manifest digest, and
+// reasoning profile, and may only request requirements the manifest declares
+// — otherwise a different package could supply the accepted vector and
+// evidence inventory. The assessment must carry at least one result for every
+// requested check, answer every requested requirement through the
+// applicability check matching its declared kind, cover every declared
+// conformance vector when test-vectors was requested, and attest only
+// requested evidence or declared package members, always under the pinned
+// digest.
 func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecontract.Package) error {
 	var diagnostics []contract.Diagnostic
+	manifestDigest := packagecontract.Digest(pkg.NormalizedManifest)
+	if request.Package.ID != pkg.Manifest.ID || request.Package.Version != pkg.Manifest.Version || request.Package.Digest != manifestDigest {
+		diagnostics = append(diagnostics, contract.Diag("assessment.request.package_unbound", "package", "request pins %s@%s digest %s, supplied package is %s@%s digest %s", request.Package.ID, request.Package.Version, request.Package.Digest, pkg.Manifest.ID, pkg.Manifest.Version, manifestDigest))
+	}
+	if request.ReasoningProfile.ID != pkg.Manifest.ReasoningProfile.ID || request.ReasoningProfile.Version != pkg.Manifest.ReasoningProfile.Version {
+		diagnostics = append(diagnostics, contract.Diag("assessment.request.profile_unbound", "reasoningProfile", "request names reasoning profile %s@%s, supplied package declares %s@%s", request.ReasoningProfile.ID, request.ReasoningProfile.Version, pkg.Manifest.ReasoningProfile.ID, pkg.Manifest.ReasoningProfile.Version))
+	}
 	if assessment.Package != request.Package {
 		diagnostics = append(diagnostics, contract.Diag("assessment.request.package_mismatch", "package", "assessment answers package %s@%s, request named %s@%s", assessment.Package.ID, assessment.Package.Version, request.Package.ID, request.Package.Version))
 	}
@@ -27,9 +37,36 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 	for _, check := range request.Checks {
 		requestedChecks[check] = true
 	}
+	declaredKinds := map[string]packagecontract.RequirementDeclaration{}
+	for _, requirement := range pkg.Manifest.Requirements {
+		declaredKinds[requirement.ID] = requirement
+	}
+	checkForKind := map[string]string{"semantic": CheckSemanticApplicability, "quantitative": CheckQuantitativeApplicability}
 	requestedRequirements := map[string]bool{}
-	for _, requirement := range request.Requirements {
+	for index, requirement := range request.Requirements {
 		requestedRequirements[requirement] = true
+		declaration, declared := declaredKinds[requirement]
+		if !declared {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_unknown", fmt.Sprintf("requirements[%d]", index), "requirement %s is not declared by the package manifest", requirement))
+			continue
+		}
+		if !requestedChecks[checkForKind[declaration.Kind]] {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_uncheckable", fmt.Sprintf("requirements[%d]", index), "requirement %s is %s but the request omits the %s check", requirement, declaration.Kind, checkForKind[declaration.Kind]))
+		}
+	}
+	for _, kind := range []string{"semantic", "quantitative"} {
+		if !requestedChecks[checkForKind[kind]] {
+			continue
+		}
+		answerable := false
+		for _, requirement := range request.Requirements {
+			if declaration, declared := declaredKinds[requirement]; declared && declaration.Kind == kind {
+				answerable = true
+			}
+		}
+		if !answerable {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.check_unanswerable", "checks", "the %s check is requested but no requested requirement is %s", checkForKind[kind], kind))
+		}
 	}
 	requestedEvidence := map[string]string{}
 	for _, evidence := range request.Evidence {
@@ -59,7 +96,23 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 			if !requestedRequirements[result.Requirement.ID] {
 				diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_unrequested", location+".requirement", "requirement %s was not requested", result.Requirement.ID))
 			}
-			answeredRequirements[result.Requirement.ID] = true
+			if declaration, declared := declaredKinds[result.Requirement.ID]; declared {
+				if result.Requirement.Version != declaration.Version {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_version_mismatch", location+".requirement.version", "requirement %s is declared at version %s", result.Requirement.ID, declaration.Version))
+				}
+				switch result.Check {
+				case CheckSemanticApplicability, CheckQuantitativeApplicability:
+					if checkForKind[declaration.Kind] != result.Check {
+						diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_kind_mismatch", location+".requirement", "requirement %s is %s and cannot be answered by %s", result.Requirement.ID, declaration.Kind, result.Check))
+					} else {
+						answeredRequirements[result.Requirement.ID] = true
+					}
+				case CheckSHACL:
+					if declaration.Kind != "semantic" {
+						diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_kind_mismatch", location+".requirement", "requirement %s is %s and cannot be referenced by a shacl result", result.Requirement.ID, declaration.Kind))
+					}
+				}
+			}
 		}
 		if result.Vector != nil {
 			expected, declared := declaredVectors[result.Vector.ID]
@@ -95,8 +148,8 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 		}
 	}
 	for _, requirement := range request.Requirements {
-		if !answeredRequirements[requirement] {
-			diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_missing", "results", "requested requirement %s has no result", requirement))
+		if _, declared := declaredKinds[requirement]; declared && !answeredRequirements[requirement] {
+			diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_missing", "results", "requested requirement %s has no result from its kind-matched applicability check", requirement))
 		}
 	}
 	for _, evidence := range request.Evidence {

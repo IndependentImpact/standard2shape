@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 )
 
 var (
@@ -40,10 +41,20 @@ func IsTimestamp(value string) bool {
 	return err == nil && strings.HasSuffix(value, "Z") && parsed.UTC().Equal(parsed)
 }
 
-// IsBlank mirrors the schemas' `"pattern": "\\S"` exactly: a string is blank
-// when it contains only the whitespace the RE2/ECMA \s class agrees on.
+// IsBlank mirrors the schemas' `"pattern": "\\S"` under the ECMA-262 regex
+// semantics JSON Schema specifies: a string is blank when every rune is in
+// ECMA's WhiteSpace or LineTerminator classes (which include NBSP and BOM but
+// not NEL, so unicode.IsSpace alone would diverge in both directions).
 func IsBlank(value string) bool {
-	return strings.Trim(value, " \t\n\f\r") == ""
+	return strings.TrimFunc(value, isECMAWhitespace) == ""
+}
+
+func isECMAWhitespace(r rune) bool {
+	switch r {
+	case '\t', '\n', '\v', '\f', '\r', ' ', '\u00a0', '\ufeff', '\u2028', '\u2029':
+		return true
+	}
+	return unicode.Is(unicode.Zs, r)
 }
 
 func SHA256(data []byte) string {

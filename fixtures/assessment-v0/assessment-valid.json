@@ -3,7 +3,7 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:0d3053a4dd840188784515c3c60a507dc583f8113f74394c33c740ec8cd22679"
+    "digest": "sha256:b30761c78c727033f3257fa7820894606d16eeef2ab169c1c82d4064ddb01a6b"
   },
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",
@@ -67,7 +67,7 @@
       "check": "semantic-applicability",
       "outcome": "conforms",
       "requirement": {
-        "id": "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope",
+        "id": "https://example.org/standard/ProjectTitleShape",
         "version": "1.0.0"
       },
       "violations": [],
@@ -77,17 +77,6 @@
           "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f"
         }
       ]
-    },
-    {
-      "check": "quantitative-applicability",
-      "outcome": "unsupported",
-      "requirement": {
-        "id": "https://example.org/standard/DemoMethodologyV1/requirements/minimum-annual-yield",
-        "version": "1.0.0"
-      },
-      "message": "no quantitative evaluation binding is available to this evaluator",
-      "violations": [],
-      "evidenceChecked": []
     },
     {
       "check": "test-vectors",

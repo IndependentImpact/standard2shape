@@ -3,17 +3,28 @@ package packagecontract
 const ManifestVersionV01 = "0.1"
 
 type Manifest struct {
-	ManifestVersion    string               `json:"manifestVersion"`
-	ID                 string               `json:"id"`
-	Version            string               `json:"version"`
-	StandardRelease    VersionedGraphEntity `json:"standardRelease"`
-	DocumentRoots      []GraphEntity        `json:"documentRoots"`
-	CanonicalShapes    []GraphEntity        `json:"canonicalShapes"`
-	Artifacts          []SourceArtifact     `json:"artifacts"`
-	Imports            []ImportReference    `json:"imports"`
-	References         []ArtifactReference  `json:"references"`
-	ReasoningProfile   VersionedGraphEntity `json:"reasoningProfile"`
-	ConformanceVectors []ConformanceVector  `json:"conformanceVectors"`
+	ManifestVersion    string                   `json:"manifestVersion"`
+	ID                 string                   `json:"id"`
+	Version            string                   `json:"version"`
+	StandardRelease    VersionedGraphEntity     `json:"standardRelease"`
+	DocumentRoots      []GraphEntity            `json:"documentRoots"`
+	CanonicalShapes    []GraphEntity            `json:"canonicalShapes"`
+	Artifacts          []SourceArtifact         `json:"artifacts"`
+	Imports            []ImportReference        `json:"imports"`
+	References         []ArtifactReference      `json:"references"`
+	Requirements       []RequirementDeclaration `json:"requirements"`
+	ReasoningProfile   VersionedGraphEntity     `json:"reasoningProfile"`
+	ConformanceVectors []ConformanceVector      `json:"conformanceVectors"`
+}
+
+// RequirementDeclaration inventories one executable requirement of the
+// package: the canonical identity assessments and conformance vectors are
+// bound to, its kind, and the standard-owned source declaring it.
+type RequirementDeclaration struct {
+	ID      string `json:"id"`
+	Version string `json:"version"`
+	Kind    string `json:"kind"`
+	Source  string `json:"source"`
 }
 
 type GraphEntity struct {

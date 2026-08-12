@@ -29,6 +29,14 @@
   ],
   "imports": [],
   "references": [],
+  "requirements": [
+    {
+      "id": "https://example.org/MissingShape",
+      "version": "1.0.0",
+      "kind": "semantic",
+      "source": "missing.ttl"
+    }
+  ],
   "reasoningProfile": {
     "id": "https://example.org/MissingProfile",
     "version": "0.1.0",
@@ -36,12 +44,28 @@
   },
   "conformanceVectors": [
     {
-      "id": "https://example.org/tests/missing",
-      "name": "missing evidence",
+      "id": "https://example.org/tests/missing-valid",
+      "name": "missing valid case",
       "requirement": "https://example.org/MissingShape",
-      "path": "missing-data.ttl",
+      "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
+    },
+    {
+      "id": "https://example.org/tests/missing-boundary",
+      "name": "missing boundary case",
+      "requirement": "https://example.org/MissingShape",
+      "path": "data-boundary.ttl",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "conforms"
+    },
+    {
+      "id": "https://example.org/tests/missing-invalid",
+      "name": "missing invalid case",
+      "requirement": "https://example.org/MissingShape",
+      "path": "data-invalid.ttl",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "non-conforms"
     }
   ]
 }

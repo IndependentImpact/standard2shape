@@ -3,7 +3,7 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:0d3053a4dd840188784515c3c60a507dc583f8113f74394c33c740ec8cd22679"
+    "digest": "sha256:b30761c78c727033f3257fa7820894606d16eeef2ab169c1c82d4064ddb01a6b"
   },
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",
@@ -40,7 +40,7 @@
       "check": "semantic-applicability",
       "outcome": "indeterminate",
       "requirement": {
-        "id": "https://example.org/standard/DemoMethodologyV1/requirements/semantic-scope",
+        "id": "https://example.org/standard/ProjectTitleShape",
         "version": "1.0.0"
       },
       "message": "the evidence does not describe the project scope this requirement constrains",

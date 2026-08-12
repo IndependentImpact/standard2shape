@@ -68,6 +68,14 @@
       "source": "references.ttl"
     }
   ],
+  "requirements": [
+    {
+      "id": "https://example.org/standard/ProjectTitleShape",
+      "version": "1.0.0",
+      "kind": "semantic",
+      "source": "shapes.ttl"
+    }
+  ],
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",
     "version": "0.1.0",

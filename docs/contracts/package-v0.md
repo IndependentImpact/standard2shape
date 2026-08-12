@@ -21,7 +21,9 @@ The JSON manifest inventories package members and roots. RDF remains authoritati
 
 Manifest field names are matched exactly: differently cased or duplicate fields are rejected, matching the closed JSON Schema. Members are read from within the package root; a member that resolves outside it through a symlink is rejected.
 
-Every local canonical artifact records a package-relative path, one role, the `text/turtle` media type, and a SHA-256 digest of its exact bytes. Conformance vectors are local members with the same path and digest guarantees but are separated from canonical artifacts because they are evidence, not normative source graphs. Every conformance vector names the executable requirement it exercises; the requirement must be a declared canonical shape or a declared external reference, so vector-to-requirement bindings are canonical, not consumer-declared.
+Every local canonical artifact records a package-relative path, one role, the `text/turtle` media type, and a SHA-256 digest of its exact bytes. Conformance vectors are local members with the same path and digest guarantees but are separated from canonical artifacts because they are evidence, not normative source graphs.
+
+`requirements` inventories every executable requirement of the package: its IRI, version, kind (`semantic` or `quantitative`), and the standard-owned source declaring it. A requirement's identity must be a declared canonical shape or external reference. Every conformance vector names the declared requirement it exercises, so vector-to-requirement bindings are canonical, not consumer-declared, and every declared requirement must be exercised by at least three vectors covering both expected outcomes — the manifest-level form of the rule that every executable requirement has mandatory valid, invalid, and boundary test vectors.
 
 All paths are normalized package-relative POSIX paths: no backslashes and no leading, trailing, empty, `.`, or `..` segments. The JSON Schema path pattern and the verifier accept exactly the same paths. On an indicator, methodology, or import entry, `source` identifies the standard-owned file containing the reference declaration—not the source or ownership of the external artifact. A pinned reference does not itself constitute a standard authorization; every authorization must target a declared reference, but references may also exist for context or dependency resolution. Remote import resolution is disabled: each `owl:imports` statement must have a matching `reference-only` manifest declaration. Consumers verify pinned external references through an approved artifact source; they never infer ownership from inclusion in a standard manifest.
 
@@ -64,7 +66,9 @@ Contract errors expose a stable code, package-relative location, and explanatory
 - `package.member.conflict` — one path is assigned incompatible descriptors or roles;
 - `package.member.digest_mismatch` — local bytes do not match the manifest;
 - `package.member.escape` — a member resolves outside the package root;
-- `manifest.vector.requirement_unknown` — a vector's requirement is not a declared canonical shape or reference;
+- `manifest.vector.requirement_unknown` — a vector's requirement is not a declared executable requirement;
+- `manifest.requirement.unknown` / `.requirement.kind_invalid` / `.requirement.duplicate` — a requirement entry does not use a declared canonical identity, a known kind, or a unique identity;
+- `manifest.requirement.vectors_missing` — a declared requirement lacks three vectors covering both expected outcomes;
 - `graph.document_root.invalid` — a declared root is absent, duplicated, mistyped, or defined in another source;
 - `graph.placement.shape_invalid` — a placement does not reference exactly one declared reusable shape;
 - `graph.document_order.invalid` — sibling positions are absent, invalid, or duplicated;

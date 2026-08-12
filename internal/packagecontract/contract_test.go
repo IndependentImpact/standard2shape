@@ -324,6 +324,60 @@ func TestVectorRequirementsMustBeDeclaredIdentities(t *testing.T) {
 	}
 }
 
+func TestRequirementsNeedMandatoryVectorCoverage(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.ConformanceVectors = manifest.ConformanceVectors[:2]
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.requirement.vectors_missing") {
+		t.Fatalf("expected mandatory vector-coverage diagnostic, got %v", err)
+	}
+}
+
+func TestRequirementInventoryMustUseCanonicalIdentities(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Requirements[0].ID = "https://example.org/standard/ForeignRequirement"
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.requirement.unknown") {
+		t.Fatalf("expected undeclared requirement-identity diagnostic, got %v", err)
+	}
+}
+
 func TestCanonicalSourcesRejectPresentationOrder(t *testing.T) {
 	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
 	shapesPath := filepath.Join(root, "shapes.ttl")

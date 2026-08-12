@@ -104,6 +104,7 @@ func Normalize(manifest Manifest) ([]byte, error) {
 	normalized.Artifacts = append([]SourceArtifact(nil), manifest.Artifacts...)
 	normalized.Imports = append([]ImportReference{}, manifest.Imports...)
 	normalized.References = append([]ArtifactReference{}, manifest.References...)
+	normalized.Requirements = append([]RequirementDeclaration(nil), manifest.Requirements...)
 	normalized.DocumentRoots = append([]GraphEntity(nil), manifest.DocumentRoots...)
 	normalized.CanonicalShapes = append([]GraphEntity(nil), manifest.CanonicalShapes...)
 	normalized.ConformanceVectors = append([]ConformanceVector(nil), manifest.ConformanceVectors...)
@@ -114,6 +115,7 @@ func Normalize(manifest Manifest) ([]byte, error) {
 	sort.Slice(normalized.References, func(i, j int) bool {
 		return normalized.References[i].Kind+"\x00"+normalized.References[i].ID < normalized.References[j].Kind+"\x00"+normalized.References[j].ID
 	})
+	sort.Slice(normalized.Requirements, func(i, j int) bool { return normalized.Requirements[i].ID < normalized.Requirements[j].ID })
 	sort.Slice(normalized.DocumentRoots, func(i, j int) bool { return normalized.DocumentRoots[i].ID < normalized.DocumentRoots[j].ID })
 	sort.Slice(normalized.CanonicalShapes, func(i, j int) bool { return normalized.CanonicalShapes[i].ID < normalized.CanonicalShapes[j].ID })
 	sort.Slice(normalized.ConformanceVectors, func(i, j int) bool { return normalized.ConformanceVectors[i].ID < normalized.ConformanceVectors[j].ID })
@@ -159,6 +161,7 @@ var (
 		"artifacts":          contract.ArraySpec{Element: contract.ObjectSpec{"path": nil, "role": nil, "mediaType": nil, "digest": nil}},
 		"imports":            contract.ArraySpec{Element: contract.ObjectSpec{"source": nil, "iri": nil, "version": nil, "digest": nil, "policy": nil}},
 		"references":         contract.ArraySpec{Element: contract.ObjectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
+		"requirements":       contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "version": nil, "kind": nil, "source": nil}},
 		"reasoningProfile":   versionedEntitySpec,
 		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "requirement": nil, "path": nil, "digest": nil, "expected": nil}},
 	}
@@ -259,15 +262,37 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		referenceKeys[key] = true
 	}
 
-	requirementTargets := map[string]bool{}
+	canonicalIdentities := map[string]bool{}
 	for _, shape := range manifest.CanonicalShapes {
-		requirementTargets[shape.ID] = true
+		canonicalIdentities[shape.ID] = true
 	}
 	for _, reference := range manifest.References {
-		requirementTargets[reference.ID] = true
+		canonicalIdentities[reference.ID] = true
 	}
+	if len(manifest.Requirements) == 0 {
+		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "requirements", "at least one executable requirement is required"))
+	}
+	declaredRequirements := map[string]bool{}
+	for index, requirement := range manifest.Requirements {
+		location := fmt.Sprintf("requirements[%d]", index)
+		diagnostics = append(diagnostics, validateIRI(location+".id", requirement.ID)...)
+		diagnostics = append(diagnostics, validateVersion(location+".version", requirement.Version)...)
+		if requirement.Kind != "semantic" && requirement.Kind != "quantitative" {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.kind_invalid", location+".kind", "requirement kind must be semantic or quantitative"))
+		}
+		diagnostics = append(diagnostics, requireArtifactSource(location+".source", requirement.Source, artifactByPath)...)
+		if !canonicalIdentities[requirement.ID] {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.unknown", location+".id", "requirement %s is not a declared canonical shape or reference", requirement.ID))
+		}
+		if declaredRequirements[requirement.ID] {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.duplicate", location+".id", "requirement is declared more than once"))
+		}
+		declaredRequirements[requirement.ID] = true
+	}
+
 	vectorPaths := map[string]ConformanceVector{}
 	vectorIDs := map[string]bool{}
+	vectorsByRequirement := map[string]map[string]int{}
 	for index, vector := range manifest.ConformanceVectors {
 		location := fmt.Sprintf("conformanceVectors[%d]", index)
 		diagnostics = append(diagnostics, validateIRI(location+".id", vector.ID)...)
@@ -275,9 +300,13 @@ func validateManifest(manifest Manifest) []Diagnostic {
 			diagnostics = append(diagnostics, diagnostic("manifest.field.required", location+".name", "vector name is required"))
 		}
 		diagnostics = append(diagnostics, validateIRI(location+".requirement", vector.Requirement)...)
-		if vector.Requirement != "" && !requirementTargets[vector.Requirement] {
-			diagnostics = append(diagnostics, diagnostic("manifest.vector.requirement_unknown", location+".requirement", "requirement %s is not a declared canonical shape or reference", vector.Requirement))
+		if vector.Requirement != "" && !declaredRequirements[vector.Requirement] {
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.requirement_unknown", location+".requirement", "requirement %s is not a declared executable requirement", vector.Requirement))
 		}
+		if vectorsByRequirement[vector.Requirement] == nil {
+			vectorsByRequirement[vector.Requirement] = map[string]int{}
+		}
+		vectorsByRequirement[vector.Requirement][vector.Expected]++
 		diagnostics = append(diagnostics, validatePath(location+".path", vector.Path)...)
 		diagnostics = append(diagnostics, validateDigest(location+".digest", vector.Digest)...)
 		if vector.Expected != "conforms" && vector.Expected != "non-conforms" {
@@ -299,6 +328,17 @@ func validateManifest(manifest Manifest) []Diagnostic {
 			diagnostics = append(diagnostics, diagnostic("manifest.vector.duplicate", location+".id", "vector identity is declared more than once"))
 		}
 		vectorIDs[vector.ID] = true
+	}
+
+	// SPEC: every executable requirement has mandatory valid, invalid, and
+	// boundary test vectors, which at manifest level means at least three
+	// vectors including both expected outcomes; the suite contract binds the
+	// categories.
+	for index, requirement := range manifest.Requirements {
+		counts := vectorsByRequirement[requirement.ID]
+		if counts["conforms"]+counts["non-conforms"] < 3 || counts["conforms"] == 0 || counts["non-conforms"] == 0 {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.vectors_missing", fmt.Sprintf("requirements[%d]", index), "requirement %s needs at least three vectors covering both expected outcomes", requirement.ID))
+		}
 	}
 	return diagnostics
 }
