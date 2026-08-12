@@ -81,8 +81,8 @@
         "requirement": { "$ref": "#/$defs/iri" },
         "severity": { "enum": ["violation", "warning", "info"] },
         "message": { "type": "string", "minLength": 1, "pattern": "\\S" },
-        "focus": { "type": "string", "minLength": 1 },
-        "path": { "type": "string", "minLength": 1 },
+        "focus": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "path": { "type": "string", "minLength": 1, "pattern": "\\S" },
         "source": { "$ref": "#/$defs/path" }
       }
     },
@@ -144,7 +144,7 @@
           "then": { "required": ["requirement"] }
         },
         {
-          "if": { "properties": { "check": { "enum": ["syntax", "package-structure", "reasoning-profile", "test-vectors"] } } },
+          "if": { "properties": { "check": { "enum": ["syntax", "package-structure", "shacl", "reasoning-profile", "test-vectors"] } } },
           "then": { "not": { "required": ["requirement"] } }
         },
         {

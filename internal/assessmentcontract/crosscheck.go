@@ -100,17 +100,10 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 				if result.Requirement.Version != declaration.Version {
 					diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_version_mismatch", location+".requirement.version", "requirement %s is declared at version %s", result.Requirement.ID, declaration.Version))
 				}
-				switch result.Check {
-				case CheckSemanticApplicability, CheckQuantitativeApplicability:
-					if checkForKind[declaration.Kind] != result.Check {
-						diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_kind_mismatch", location+".requirement", "requirement %s is %s and cannot be answered by %s", result.Requirement.ID, declaration.Kind, result.Check))
-					} else {
-						answeredRequirements[result.Requirement.ID] = true
-					}
-				case CheckSHACL:
-					if declaration.Kind != "semantic" {
-						diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_kind_mismatch", location+".requirement", "requirement %s is %s and cannot be referenced by a shacl result", result.Requirement.ID, declaration.Kind))
-					}
+				if checkForKind[declaration.Kind] != result.Check {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.requirement_kind_mismatch", location+".requirement", "requirement %s is %s and cannot be answered by %s", result.Requirement.ID, declaration.Kind, result.Check))
+				} else {
+					answeredRequirements[result.Requirement.ID] = true
 				}
 			}
 		}

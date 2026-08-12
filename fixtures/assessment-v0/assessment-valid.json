@@ -3,7 +3,7 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:b30761c78c727033f3257fa7820894606d16eeef2ab169c1c82d4064ddb01a6b"
+    "digest": "sha256:426eda5e414dbb5f56809821a2cbdeadc74b687d161977f85b6024124a07de70"
   },
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",
@@ -27,7 +27,7 @@
         },
         {
           "path": "references.ttl",
-          "digest": "sha256:8b2bd8801db2b634dec043b2951ad73b38b289c384906c987b80250cf26d1fab"
+          "digest": "sha256:be5bff8453f09524d756106445e79ea34cb14b8e1614b6461d7dbd38b17c3abd"
         },
         {
           "path": "shapes.ttl",
@@ -59,7 +59,7 @@
       "evidenceChecked": [
         {
           "path": "references.ttl",
-          "digest": "sha256:8b2bd8801db2b634dec043b2951ad73b38b289c384906c987b80250cf26d1fab"
+          "digest": "sha256:be5bff8453f09524d756106445e79ea34cb14b8e1614b6461d7dbd38b17c3abd"
         }
       ]
     },
@@ -67,7 +67,7 @@
       "check": "semantic-applicability",
       "outcome": "conforms",
       "requirement": {
-        "id": "https://example.org/standard/ProjectTitleShape",
+        "id": "https://example.org/standard/ProjectTitleRequirement",
         "version": "1.0.0"
       },
       "violations": [],

@@ -3,7 +3,7 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:b30761c78c727033f3257fa7820894606d16eeef2ab169c1c82d4064ddb01a6b"
+    "digest": "sha256:426eda5e414dbb5f56809821a2cbdeadc74b687d161977f85b6024124a07de70"
   },
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",

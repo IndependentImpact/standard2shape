@@ -43,6 +43,19 @@ s2s:MethodologyReference a rdfs:Class ;
 s2s:ReasoningProfile a rdfs:Class ;
   rdfs:label "Reasoning profile"@en .
 
+s2s:ApplicabilityRequirement a rdfs:Class ;
+  rdfs:label "Applicability requirement"@en ;
+  rdfs:comment "A canonical semantic or quantitative rule owned by a methodology that must be satisfied before the methodology may be used for its target indicator."@en .
+
+s2s:SemanticRequirement a rdfs:Class ;
+  rdfs:subClassOf s2s:ApplicabilityRequirement ;
+  owl:disjointWith s2s:QuantitativeRequirement ;
+  rdfs:label "Semantic requirement"@en .
+
+s2s:QuantitativeRequirement a rdfs:Class ;
+  rdfs:subClassOf s2s:ApplicabilityRequirement ;
+  rdfs:label "Quantitative requirement"@en .
+
 s2s:definesDocument a rdf:Property ;
   rdfs:domain s2s:StandardRelease ;
   rdfs:range s2s:OrderedShapeBundle ;
@@ -94,6 +107,16 @@ s2s:forIndicator a rdf:Property ;
   rdfs:domain s2s:MethodologyReference ;
   rdfs:range s2s:IndicatorReference ;
   rdfs:label "for indicator"@en .
+
+s2s:hasRequirement a rdf:Property ;
+  rdfs:domain s2s:MethodologyReference ;
+  rdfs:range s2s:ApplicabilityRequirement ;
+  rdfs:label "has requirement"@en .
+
+s2s:requirementVersion a rdf:Property ;
+  rdfs:domain s2s:ApplicabilityRequirement ;
+  rdfs:range xsd:string ;
+  rdfs:label "requirement version"@en .
 
 s2s:artifactVersion a rdf:Property ;
   rdfs:domain s2s:ArtifactReference ;

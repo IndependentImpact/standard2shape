@@ -262,13 +262,6 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		referenceKeys[key] = true
 	}
 
-	canonicalIdentities := map[string]bool{}
-	for _, shape := range manifest.CanonicalShapes {
-		canonicalIdentities[shape.ID] = true
-	}
-	for _, reference := range manifest.References {
-		canonicalIdentities[reference.ID] = true
-	}
 	if len(manifest.Requirements) == 0 {
 		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "requirements", "at least one executable requirement is required"))
 	}
@@ -281,9 +274,6 @@ func validateManifest(manifest Manifest) []Diagnostic {
 			diagnostics = append(diagnostics, diagnostic("manifest.requirement.kind_invalid", location+".kind", "requirement kind must be semantic or quantitative"))
 		}
 		diagnostics = append(diagnostics, requireArtifactSource(location+".source", requirement.Source, artifactByPath)...)
-		if !canonicalIdentities[requirement.ID] {
-			diagnostics = append(diagnostics, diagnostic("manifest.requirement.unknown", location+".id", "requirement %s is not a declared canonical shape or reference", requirement.ID))
-		}
 		if declaredRequirements[requirement.ID] {
 			diagnostics = append(diagnostics, diagnostic("manifest.requirement.duplicate", location+".id", "requirement is declared more than once"))
 		}

@@ -372,7 +372,7 @@ func TestRequestedTestVectorsRequireCompleteResults(t *testing.T) {
 
 func TestApplicabilityRequestsRequireRequirements(t *testing.T) {
 	requestData := bytes.Replace(fixture(t, "request.json"), []byte(`"requirements": [
-    "https://example.org/standard/ProjectTitleShape"
+    "https://example.org/standard/ProjectTitleRequirement"
   ]`), []byte(`"requirements": []`), 1)
 	_, err := DecodeRequest(requestData)
 	var contractErr *contract.Error
@@ -406,6 +406,15 @@ func TestEmptyAndBlankStringsAgreeWithSchemas(t *testing.T) {
 	}
 	if err := validateAgainstSchema(t, assessmentSchema, blank); err == nil {
 		t.Fatal("the schema must also reject a whitespace-only message")
+	}
+
+	blankFocus := bytes.Replace(base, []byte(`"focus": "https://example.org/standard/ProjectWithoutTitle"`), []byte(`"focus": " \t "`), 1)
+	_, err = DecodeAssessment(blankFocus)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.field.blank") {
+		t.Fatalf("whitespace-only focus must be rejected, got %v", err)
+	}
+	if err := validateAgainstSchema(t, assessmentSchema, blankFocus); err == nil {
+		t.Fatal("the schema must also reject a whitespace-only focus")
 	}
 
 	badIRI := bytes.Replace(base, []byte(`"id": "https://standard2shape.dev/evaluators/local-tracer"`), []byte(`"id": "not-an-iri"`), 1)

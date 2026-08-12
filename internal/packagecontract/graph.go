@@ -22,6 +22,10 @@ const (
 	s2sIndicatorRef    = "https://standard2shape.dev/vocab#IndicatorReference"
 	s2sMethodologyRef  = "https://standard2shape.dev/vocab#MethodologyReference"
 	s2sReasoning       = "https://standard2shape.dev/vocab#ReasoningProfile"
+	s2sSemanticReq     = "https://standard2shape.dev/vocab#SemanticRequirement"
+	s2sQuantitativeReq = "https://standard2shape.dev/vocab#QuantitativeRequirement"
+	s2sHasRequirement  = "https://standard2shape.dev/vocab#hasRequirement"
+	s2sReqVersion      = "https://standard2shape.dev/vocab#requirementVersion"
 	s2sDefinesDocument = "https://standard2shape.dev/vocab#definesDocument"
 	s2sRootSection     = "https://standard2shape.dev/vocab#hasRootSection"
 	s2sMember          = "https://standard2shape.dev/vocab#member"
@@ -77,8 +81,48 @@ func validateGraph(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	diagnostics = append(diagnostics, validateStandardRelease(manifest, triples)...)
 	diagnostics = append(diagnostics, validateReasoningProfile(manifest, triples)...)
 	diagnostics = append(diagnostics, validateReferences(manifest, triples)...)
+	diagnostics = append(diagnostics, validateRequirements(manifest, triples)...)
 	diagnostics = append(diagnostics, validateDocuments(manifest, triples)...)
 	diagnostics = append(diagnostics, validateShapes(manifest, triples)...)
+	return diagnostics
+}
+
+// validateRequirements derives the executable-requirement inventory from the
+// canonical graph: every manifest entry must be a typed, versioned,
+// methodology-owned requirement definition, and every requirement definition
+// in the graph must be inventoried.
+func validateRequirements(manifest Manifest, triples []sourcedTriple) []Diagnostic {
+	var diagnostics []Diagnostic
+	typeForKind := map[string]string{"semantic": s2sSemanticReq, "quantitative": s2sQuantitativeReq}
+	methodologies := map[string]bool{}
+	for _, reference := range manifest.References {
+		if reference.Kind == "methodology" {
+			methodologies[reference.ID] = true
+		}
+	}
+	declared := map[string]bool{}
+	for _, requirement := range manifest.Requirements {
+		declared[requirement.ID] = true
+		typeIRI, known := typeForKind[requirement.Kind]
+		if !known {
+			continue
+		}
+		diagnostics = append(diagnostics, requireTypedEntity(triples, requirement.ID, typeIRI, requirement.Source, "graph.requirement.invalid")...)
+		if value := singleLiteral(triples, requirement.ID, s2sReqVersion); value != requirement.Version {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement version for %s is %q, expected %q", requirement.ID, value, requirement.Version))
+		}
+		owners := subjectsWith(triples, s2sHasRequirement, requirement.ID)
+		if len(owners) != 1 || !methodologies[owners[0]] {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement %s must be owned by exactly one declared methodology reference", requirement.ID))
+		}
+	}
+	for _, typeIRI := range []string{s2sSemanticReq, s2sQuantitativeReq} {
+		for _, subject := range subjectsWith(triples, rdfType, typeIRI) {
+			if !declared[subject] {
+				diagnostics = append(diagnostics, diagnostic("graph.requirement.undeclared", sourceForType(triples, subject, typeIRI), "executable requirement %s is not inventoried by the manifest", subject))
+			}
+		}
+	}
 	return diagnostics
 }
 

@@ -136,11 +136,10 @@ func validateResult(location string, result CheckResult) []contract.Diagnostic {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".result.vector_forbidden", location, "only test-vectors results may carry a vector"))
 	}
 	requiresRequirement := result.Check == CheckSemanticApplicability || result.Check == CheckQuantitativeApplicability
-	allowsRequirement := requiresRequirement || result.Check == CheckSHACL
 	if requiresRequirement && result.Requirement == nil {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".result.requirement_required", location, "an applicability result must identify its requirement"))
 	}
-	if !allowsRequirement && result.Requirement != nil {
+	if !requiresRequirement && result.Requirement != nil {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".result.requirement_forbidden", location, "a %s result must not carry a requirement identity", result.Check))
 	}
 	if result.Requirement != nil {
@@ -244,6 +243,12 @@ func validateViolation(location string, violation Violation) []contract.Diagnost
 	}
 	if contract.IsBlank(violation.Message) {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".message", "violation message is required"))
+	}
+	if violation.Focus != "" && contract.IsBlank(violation.Focus) {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.blank", location+".focus", "focus must not be blank"))
+	}
+	if violation.Path != "" && contract.IsBlank(violation.Path) {
+		diagnostics = append(diagnostics, contract.Diag(prefix+".field.blank", location+".path", "path must not be blank"))
 	}
 	if violation.Source != "" && !contract.IsNormalizedPath(violation.Source) {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".path.invalid", location+".source", "expected a normalized POSIX package-relative path, got %q", violation.Source))

@@ -351,7 +351,7 @@ func TestRequirementsNeedMandatoryVectorCoverage(t *testing.T) {
 	}
 }
 
-func TestRequirementInventoryMustUseCanonicalIdentities(t *testing.T) {
+func TestRequirementDefinitionsAreVerifiedAgainstTheGraph(t *testing.T) {
 	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
 	manifestPath := filepath.Join(root, "manifest.json")
 	manifestData, err := os.ReadFile(manifestPath)
@@ -362,7 +362,8 @@ func TestRequirementInventoryMustUseCanonicalIdentities(t *testing.T) {
 	if err := json.Unmarshal(manifestData, &manifest); err != nil {
 		t.Fatal(err)
 	}
-	manifest.Requirements[0].ID = "https://example.org/standard/ForeignRequirement"
+	manifest.Requirements[0].Version = "2.0.0"
+	manifest.Requirements[0].Kind = "quantitative"
 	updated, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -373,8 +374,51 @@ func TestRequirementInventoryMustUseCanonicalIdentities(t *testing.T) {
 
 	_, err = Open(root)
 	var contractErr *ContractError
-	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.requirement.unknown") {
-		t.Fatalf("expected undeclared requirement-identity diagnostic, got %v", err)
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
+		t.Fatalf("asserted kind and version must be verified against the graph, got %v", err)
+	}
+}
+
+func TestRequirementsMustBeMethodologyOwned(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphaned := bytes.Replace(references, []byte(";\n  s2s:hasRequirement ex:ProjectTitleRequirement ."), []byte("."), 1)
+	if bytes.Equal(orphaned, references) {
+		t.Fatal("fixture ownership statement not found")
+	}
+	if err := os.WriteFile(referencesPath, orphaned, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", orphaned)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
+		t.Fatalf("a requirement without a methodology owner must be rejected, got %v", err)
+	}
+}
+
+func TestGraphRequirementsMustBeInventoried(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/HiddenRequirement> a <https://standard2shape.dev/vocab#SemanticRequirement> ;\n  <https://standard2shape.dev/vocab#requirementVersion> \"1.0.0\" .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.undeclared") {
+		t.Fatalf("expected uninventoried requirement diagnostic, got %v", err)
 	}
 }
 
