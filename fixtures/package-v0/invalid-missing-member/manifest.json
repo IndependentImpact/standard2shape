@@ -34,6 +34,7 @@
       "id": "https://example.org/MissingShape",
       "version": "1.0.0",
       "kind": "semantic",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "source": "missing.ttl"
     }
   ],

@@ -76,6 +76,13 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 	for _, artifact := range pkg.Manifest.Artifacts {
 		memberDigests[artifact.Path] = artifact.Digest
 	}
+	violationTargets := map[string]bool{}
+	for _, shape := range pkg.Manifest.CanonicalShapes {
+		violationTargets[shape.ID] = true
+	}
+	for _, requirement := range pkg.Manifest.Requirements {
+		violationTargets[requirement.ID] = true
+	}
 	declaredVectors := map[string]string{}
 	for _, vector := range pkg.Manifest.ConformanceVectors {
 		memberDigests[vector.Path] = vector.Digest
@@ -115,6 +122,11 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 				diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_expected_mismatch", location+".vector.expected", "vector %s expects %s in the manifest", result.Vector.ID, expected))
 			}
 			answeredVectors[result.Vector.ID] = true
+		}
+		for violationIndex, violation := range result.Violations {
+			if !violationTargets[violation.Requirement] {
+				diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_unknown", fmt.Sprintf("%s.violations[%d].requirement", location, violationIndex), "violation names %s, which is neither a declared canonical shape nor a declared executable requirement", violation.Requirement))
+			}
 		}
 		for evidenceIndex, evidence := range result.EvidenceChecked {
 			evidenceLocation := fmt.Sprintf("%s.evidenceChecked[%d]", location, evidenceIndex)

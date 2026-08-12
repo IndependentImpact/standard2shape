@@ -22,10 +22,12 @@ const (
 	s2sIndicatorRef    = "https://standard2shape.dev/vocab#IndicatorReference"
 	s2sMethodologyRef  = "https://standard2shape.dev/vocab#MethodologyReference"
 	s2sReasoning       = "https://standard2shape.dev/vocab#ReasoningProfile"
-	s2sSemanticReq     = "https://standard2shape.dev/vocab#SemanticRequirement"
-	s2sQuantitativeReq = "https://standard2shape.dev/vocab#QuantitativeRequirement"
-	s2sHasRequirement  = "https://standard2shape.dev/vocab#hasRequirement"
-	s2sReqVersion      = "https://standard2shape.dev/vocab#requirementVersion"
+	s2sApplicabilityReq = "https://standard2shape.dev/vocab#ApplicabilityRequirement"
+	s2sSemanticReq      = "https://standard2shape.dev/vocab#SemanticRequirement"
+	s2sQuantitativeReq  = "https://standard2shape.dev/vocab#QuantitativeRequirement"
+	s2sHasRequirement   = "https://standard2shape.dev/vocab#hasRequirement"
+	s2sReqVersion       = "https://standard2shape.dev/vocab#requirementVersion"
+	s2sReqDigest        = "https://standard2shape.dev/vocab#requirementDigest"
 	s2sDefinesDocument = "https://standard2shape.dev/vocab#definesDocument"
 	s2sRootSection     = "https://standard2shape.dev/vocab#hasRootSection"
 	s2sMember          = "https://standard2shape.dev/vocab#member"
@@ -111,16 +113,28 @@ func validateRequirements(manifest Manifest, triples []sourcedTriple) []Diagnost
 		if value := singleLiteral(triples, requirement.ID, s2sReqVersion); value != requirement.Version {
 			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement version for %s is %q, expected %q", requirement.ID, value, requirement.Version))
 		}
+		if value := singleLiteral(triples, requirement.ID, s2sReqDigest); value != requirement.Digest {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement digest for %s is %q, expected %q", requirement.ID, value, requirement.Digest))
+		}
 		owners := subjectsWith(triples, s2sHasRequirement, requirement.ID)
 		if len(owners) != 1 || !methodologies[owners[0]] {
 			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement %s must be owned by exactly one declared methodology reference", requirement.ID))
 		}
 	}
-	for _, typeIRI := range []string{s2sSemanticReq, s2sQuantitativeReq} {
+	// The semantic and quantitative classes are disjoint: a record typed as
+	// both could pass as either manifest-selected kind.
+	for _, subject := range subjectsWith(triples, rdfType, s2sSemanticReq) {
+		if hasType(triples, subject, s2sQuantitativeReq) {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", sourceForType(triples, subject, s2sSemanticReq), "requirement %s cannot be both semantic and quantitative", subject))
+		}
+	}
+	swept := map[string]bool{}
+	for _, typeIRI := range []string{s2sApplicabilityReq, s2sSemanticReq, s2sQuantitativeReq} {
 		for _, subject := range subjectsWith(triples, rdfType, typeIRI) {
-			if !declared[subject] {
+			if !declared[subject] && !swept[subject] {
 				diagnostics = append(diagnostics, diagnostic("graph.requirement.undeclared", sourceForType(triples, subject, typeIRI), "executable requirement %s is not inventoried by the manifest", subject))
 			}
+			swept[subject] = true
 		}
 	}
 	return diagnostics

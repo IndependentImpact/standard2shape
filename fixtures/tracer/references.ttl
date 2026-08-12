@@ -19,7 +19,8 @@ ex:DemoMethodologyV1 a s2s:MethodologyReference ;
   s2s:hasRequirement ex:ProjectTitleRequirement .
 
 ex:ProjectTitleRequirement a s2s:SemanticRequirement ;
-  s2s:requirementVersion "1.0.0" .
+  s2s:requirementVersion "1.0.0" ;
+  s2s:requirementDigest "sha256:5555555555555555555555555555555555555555555555555555555555555555" .
 
 ex:AvoidedEmissions a s2s:IndicatorReference ;
   s2s:artifactVersion "1.0.0" ;

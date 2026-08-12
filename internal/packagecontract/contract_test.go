@@ -364,6 +364,7 @@ func TestRequirementDefinitionsAreVerifiedAgainstTheGraph(t *testing.T) {
 	}
 	manifest.Requirements[0].Version = "2.0.0"
 	manifest.Requirements[0].Kind = "quantitative"
+	manifest.Requirements[0].Digest = "sha256:9999999999999999999999999999999999999999999999999999999999999999"
 	updated, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -399,6 +400,46 @@ func TestRequirementsMustBeMethodologyOwned(t *testing.T) {
 	var contractErr *ContractError
 	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
 		t.Fatalf("a requirement without a methodology owner must be rejected, got %v", err)
+	}
+}
+
+func TestDualTypedRequirementsAreRejected(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/ProjectTitleRequirement> a <https://standard2shape.dev/vocab#QuantitativeRequirement> .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
+		t.Fatalf("a requirement typed both semantic and quantitative must be rejected, got %v", err)
+	}
+}
+
+func TestBareApplicabilityRequirementsMustBeInventoried(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/UntypedRequirement> a <https://standard2shape.dev/vocab#ApplicabilityRequirement> .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.undeclared") {
+		t.Fatalf("a bare applicability-requirement node must be inventoried, got %v", err)
 	}
 }
 

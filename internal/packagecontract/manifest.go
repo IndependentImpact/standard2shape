@@ -161,7 +161,7 @@ var (
 		"artifacts":          contract.ArraySpec{Element: contract.ObjectSpec{"path": nil, "role": nil, "mediaType": nil, "digest": nil}},
 		"imports":            contract.ArraySpec{Element: contract.ObjectSpec{"source": nil, "iri": nil, "version": nil, "digest": nil, "policy": nil}},
 		"references":         contract.ArraySpec{Element: contract.ObjectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
-		"requirements":       contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "version": nil, "kind": nil, "source": nil}},
+		"requirements":       contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "version": nil, "kind": nil, "digest": nil, "source": nil}},
 		"reasoningProfile":   versionedEntitySpec,
 		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "requirement": nil, "path": nil, "digest": nil, "expected": nil}},
 	}
@@ -273,6 +273,7 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		if requirement.Kind != "semantic" && requirement.Kind != "quantitative" {
 			diagnostics = append(diagnostics, diagnostic("manifest.requirement.kind_invalid", location+".kind", "requirement kind must be semantic or quantitative"))
 		}
+		diagnostics = append(diagnostics, validateDigest(location+".digest", requirement.Digest)...)
 		diagnostics = append(diagnostics, requireArtifactSource(location+".source", requirement.Source, artifactByPath)...)
 		if declaredRequirements[requirement.ID] {
 			diagnostics = append(diagnostics, diagnostic("manifest.requirement.duplicate", location+".id", "requirement is declared more than once"))

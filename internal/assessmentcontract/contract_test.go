@@ -426,6 +426,35 @@ func TestEmptyAndBlankStringsAgreeWithSchemas(t *testing.T) {
 	}
 }
 
+func TestViolationAttributionMustUseCanonicalIdentities(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results = append([]CheckResult{}, assessment.Results...)
+	for index, result := range assessment.Results {
+		result.Violations = append([]Violation{}, result.Violations...)
+		for violationIndex, violation := range result.Violations {
+			violation.Requirement = "https://example.org/standard/InventedRequirement"
+			result.Violations[violationIndex] = violation
+		}
+		assessment.Results[index] = result
+	}
+	err = CheckAgainstRequest(request, assessment, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.violation_requirement_unknown") {
+		t.Fatalf("violations attributed to invented identities must be rejected, got %v", err)
+	}
+}
+
 func TestRequestMustBindToSuppliedPackage(t *testing.T) {
 	request, err := DecodeRequest(fixture(t, "request.json"))
 	if err != nil {

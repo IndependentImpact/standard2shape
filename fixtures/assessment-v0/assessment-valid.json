@@ -3,7 +3,7 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:426eda5e414dbb5f56809821a2cbdeadc74b687d161977f85b6024124a07de70"
+    "digest": "sha256:dbcd7acb6a25160cef71ca8ed9dfe6db5c1e455eaa00d297beaccba8a647ae0c"
   },
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",
@@ -27,7 +27,7 @@
         },
         {
           "path": "references.ttl",
-          "digest": "sha256:be5bff8453f09524d756106445e79ea34cb14b8e1614b6461d7dbd38b17c3abd"
+          "digest": "sha256:34e6b1c826f1bd17c202a01c831efe8af6c90995d5db89c0e0652ce5509ef1ca"
         },
         {
           "path": "shapes.ttl",
@@ -59,7 +59,7 @@
       "evidenceChecked": [
         {
           "path": "references.ttl",
-          "digest": "sha256:be5bff8453f09524d756106445e79ea34cb14b8e1614b6461d7dbd38b17c3abd"
+          "digest": "sha256:34e6b1c826f1bd17c202a01c831efe8af6c90995d5db89c0e0652ce5509ef1ca"
         }
       ]
     },

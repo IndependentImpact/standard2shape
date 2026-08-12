@@ -40,6 +40,7 @@
       "id": "https://example.org/ConflictShape",
       "version": "1.0.0",
       "kind": "semantic",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "source": "shared.ttl"
     }
   ],

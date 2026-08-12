@@ -3,7 +3,7 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:426eda5e414dbb5f56809821a2cbdeadc74b687d161977f85b6024124a07de70"
+    "digest": "sha256:dbcd7acb6a25160cef71ca8ed9dfe6db5c1e455eaa00d297beaccba8a647ae0c"
   },
   "vectors": [
     {

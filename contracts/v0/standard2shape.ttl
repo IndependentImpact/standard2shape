@@ -45,7 +45,7 @@ s2s:ReasoningProfile a rdfs:Class ;
 
 s2s:ApplicabilityRequirement a rdfs:Class ;
   rdfs:label "Applicability requirement"@en ;
-  rdfs:comment "A canonical semantic or quantitative rule owned by a methodology that must be satisfied before the methodology may be used for its target indicator."@en .
+  rdfs:comment "A pinned reference record for a canonical semantic or quantitative rule owned by a methodology. The record identifies the requirement and pins its externally owned normative definition by version and digest; it never redefines the rule inside the standard package."@en .
 
 s2s:SemanticRequirement a rdfs:Class ;
   rdfs:subClassOf s2s:ApplicabilityRequirement ;
@@ -117,6 +117,12 @@ s2s:requirementVersion a rdf:Property ;
   rdfs:domain s2s:ApplicabilityRequirement ;
   rdfs:range xsd:string ;
   rdfs:label "requirement version"@en .
+
+s2s:requirementDigest a rdf:Property ;
+  rdfs:domain s2s:ApplicabilityRequirement ;
+  rdfs:range xsd:string ;
+  rdfs:label "requirement digest"@en ;
+  rdfs:comment "SHA-256 digest of the externally owned normative requirement definition, so every evaluator resolves the same executable meaning for the pinned identity."@en .
 
 s2s:artifactVersion a rdf:Property ;
   rdfs:domain s2s:ArtifactReference ;

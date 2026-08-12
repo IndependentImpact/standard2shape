@@ -120,11 +120,12 @@
     "requirement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "version", "kind", "source"],
+      "required": ["id", "version", "kind", "digest", "source"],
       "properties": {
         "id": { "$ref": "#/$defs/iri" },
         "version": { "$ref": "#/$defs/version" },
         "kind": { "enum": ["semantic", "quantitative"] },
+        "digest": { "$ref": "#/$defs/digest" },
         "source": { "$ref": "#/$defs/path" }
       }
     },

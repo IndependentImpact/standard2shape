@@ -40,7 +40,7 @@
       "path": "references.ttl",
       "role": "references",
       "mediaType": "text/turtle",
-      "digest": "sha256:be5bff8453f09524d756106445e79ea34cb14b8e1614b6461d7dbd38b17c3abd"
+      "digest": "sha256:34e6b1c826f1bd17c202a01c831efe8af6c90995d5db89c0e0652ce5509ef1ca"
     }
   ],
   "imports": [
@@ -73,6 +73,7 @@
       "id": "https://example.org/standard/ProjectTitleRequirement",
       "version": "1.0.0",
       "kind": "semantic",
+      "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
       "source": "references.ttl"
     }
   ],

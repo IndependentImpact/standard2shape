@@ -18,12 +18,14 @@ type Manifest struct {
 }
 
 // RequirementDeclaration inventories one executable requirement of the
-// package: the canonical identity assessments and conformance vectors are
-// bound to, its kind, and the standard-owned source declaring it.
+// package: the methodology-owned identity assessments and conformance vectors
+// are bound to, its kind, the digest pinning its externally owned normative
+// definition, and the standard-owned source declaring the reference record.
 type RequirementDeclaration struct {
 	ID      string `json:"id"`
 	Version string `json:"version"`
 	Kind    string `json:"kind"`
+	Digest  string `json:"digest"`
 	Source  string `json:"source"`
 }
 
