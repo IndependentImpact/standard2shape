@@ -195,10 +195,10 @@ func TestSuiteCoverageIsPerRequirement(t *testing.T) {
 		t.Fatal(err)
 	}
 	suite.Vectors = append(suite.Vectors, SuiteVector{
-		ID:          "https://example.org/standards/demo/tests/second-requirement-valid",
-		Requirement: "https://example.org/standard/AnotherRequirement",
-		Category:    "valid",
-		Expected:    "conforms",
+		ID:       "https://example.org/standards/demo/tests/second-requirement-valid",
+		Target:   "https://example.org/standard/AnotherRequirement",
+		Category: "valid",
+		Expected: "conforms",
 	})
 	err = contract.ErrorFor(validateSuite(suite))
 	var contractErr *contract.Error
@@ -286,6 +286,40 @@ func TestAssessmentMustAnswerRequestedRequirementsAndEvidence(t *testing.T) {
 	}
 }
 
+func TestVectorResultsMustAttestTheirOwnEvidence(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results = append([]CheckResult{}, assessment.Results...)
+	var vectorIndices []int
+	for index, result := range assessment.Results {
+		if result.Vector != nil {
+			vectorIndices = append(vectorIndices, index)
+		}
+	}
+	if len(vectorIndices) < 2 {
+		t.Fatal("fixture must carry at least two vector results")
+	}
+	first, second := vectorIndices[0], vectorIndices[1]
+	assessment.Results[first].EvidenceChecked, assessment.Results[second].EvidenceChecked =
+		assessment.Results[second].EvidenceChecked, assessment.Results[first].EvidenceChecked
+
+	err = CheckAgainstRequest(request, assessment, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.vector_evidence_missing") {
+		t.Fatalf("vector results with swapped evidence must be rejected, got %v", err)
+	}
+}
+
 func TestSuiteCategoriesAreBoundToTheManifest(t *testing.T) {
 	suite, err := DecodeSuite(fixture(t, "suite.json"))
 	if err != nil {
@@ -319,11 +353,11 @@ func TestSuiteRequirementLabelsAreBoundToTheManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	suite.Vectors[0].Requirement = "https://example.org/standard/RelabelledRequirement"
+	suite.Vectors[0].Target = "https://example.org/standard/RelabelledRequirement"
 	suite.Vectors[0].Category = "valid"
 	err = CheckSuiteAgainstPackage(suite, pkg)
 	var contractErr *contract.Error
-	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "suite.vector.requirement_mismatch") {
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "suite.vector.target_mismatch") {
 		t.Fatalf("relabelling a vector's requirement must be rejected, got %v", err)
 	}
 }

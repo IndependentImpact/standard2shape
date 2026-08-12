@@ -4,53 +4,160 @@
   "title": "standard2shape conformance suite v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["suiteVersion", "package", "vectors"],
+  "required": [
+    "suiteVersion",
+    "package",
+    "vectors"
+  ],
   "properties": {
-    "suiteVersion": { "const": "0.1" },
-    "package": { "$ref": "#/$defs/packageRef" },
+    "suiteVersion": {
+      "const": "0.1"
+    },
+    "package": {
+      "$ref": "#/$defs/packageRef"
+    },
     "vectors": {
       "type": "array",
       "minItems": 3,
-      "items": { "$ref": "#/$defs/vector" },
+      "items": {
+        "$ref": "#/$defs/vector"
+      },
       "allOf": [
-        { "contains": { "properties": { "category": { "const": "valid" } }, "required": ["category"] } },
-        { "contains": { "properties": { "category": { "const": "invalid" } }, "required": ["category"] } },
-        { "contains": { "properties": { "category": { "const": "boundary" } }, "required": ["category"] } }
+        {
+          "contains": {
+            "properties": {
+              "category": {
+                "const": "valid"
+              }
+            },
+            "required": [
+              "category"
+            ]
+          }
+        },
+        {
+          "contains": {
+            "properties": {
+              "category": {
+                "const": "invalid"
+              }
+            },
+            "required": [
+              "category"
+            ]
+          }
+        },
+        {
+          "contains": {
+            "properties": {
+              "category": {
+                "const": "boundary"
+              }
+            },
+            "required": [
+              "category"
+            ]
+          }
+        }
       ]
     }
   },
   "$defs": {
-    "iri": { "type": "string", "format": "iri", "minLength": 1 },
-    "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
-    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "iri": {
+      "type": "string",
+      "format": "iri",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
     "packageRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "version", "digest"],
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/iri" },
-        "version": { "$ref": "#/$defs/version" },
-        "digest": { "$ref": "#/$defs/digest" }
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "vector": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "requirement", "category", "expected"],
+      "required": [
+        "id",
+        "target",
+        "category",
+        "expected"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/iri" },
-        "requirement": { "$ref": "#/$defs/iri" },
-        "category": { "enum": ["valid", "invalid", "boundary"] },
-        "expected": { "enum": ["conforms", "non-conforms"] }
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "target": {
+          "$ref": "#/$defs/iri"
+        },
+        "category": {
+          "enum": [
+            "valid",
+            "invalid",
+            "boundary"
+          ]
+        },
+        "expected": {
+          "enum": [
+            "conforms",
+            "non-conforms"
+          ]
+        }
       },
       "allOf": [
         {
-          "if": { "properties": { "category": { "const": "valid" } } },
-          "then": { "properties": { "expected": { "const": "conforms" } } }
+          "if": {
+            "properties": {
+              "category": {
+                "const": "valid"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "const": "conforms"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "category": { "const": "invalid" } } },
-          "then": { "properties": { "expected": { "const": "non-conforms" } } }
+          "if": {
+            "properties": {
+              "category": {
+                "const": "invalid"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "const": "non-conforms"
+              }
+            }
+          }
         }
       ]
     }

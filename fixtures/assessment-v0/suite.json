@@ -3,24 +3,24 @@
   "package": {
     "id": "https://example.org/standards/demo/packages/0.1.0",
     "version": "0.1.0",
-    "digest": "sha256:172e1a1cb6278e9343b88c4dfc7ea32fb40aadba59427bcaaaf67424b62cec1b"
+    "digest": "sha256:b6832f5a3a4eabcca4cad8e085aa82ff083e19aa7334827659e911fe92251c8b"
   },
   "vectors": [
     {
       "id": "https://example.org/standards/demo/tests/complete-project",
-      "requirement": "https://example.org/standard/ProjectTitleRequirement",
+      "target": "https://example.org/standard/ProjectTitleRequirement",
       "category": "valid",
       "expected": "conforms"
     },
     {
       "id": "https://example.org/standards/demo/tests/missing-title",
-      "requirement": "https://example.org/standard/ProjectTitleRequirement",
+      "target": "https://example.org/standard/ProjectTitleRequirement",
       "category": "invalid",
       "expected": "non-conforms"
     },
     {
       "id": "https://example.org/standards/demo/tests/single-character-title",
-      "requirement": "https://example.org/standard/ProjectTitleRequirement",
+      "target": "https://example.org/standard/ProjectTitleRequirement",
       "category": "boundary",
       "expected": "conforms"
     }

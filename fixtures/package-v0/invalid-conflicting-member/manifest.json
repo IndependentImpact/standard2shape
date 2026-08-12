@@ -53,7 +53,7 @@
     {
       "id": "https://example.org/tests/conflict-valid",
       "name": "conflict valid case",
-      "requirement": "https://example.org/ConflictRequirement",
+      "target": "https://example.org/ConflictRequirement",
       "category": "valid",
       "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -62,7 +62,7 @@
     {
       "id": "https://example.org/tests/conflict-boundary",
       "name": "conflict boundary case",
-      "requirement": "https://example.org/ConflictRequirement",
+      "target": "https://example.org/ConflictRequirement",
       "category": "boundary",
       "path": "data-boundary.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -71,7 +71,7 @@
     {
       "id": "https://example.org/tests/conflict-invalid",
       "name": "conflict invalid case",
-      "requirement": "https://example.org/ConflictRequirement",
+      "target": "https://example.org/ConflictRequirement",
       "category": "invalid",
       "path": "data-invalid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",

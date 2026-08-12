@@ -163,7 +163,7 @@ var (
 		"references":         contract.ArraySpec{Element: contract.ObjectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
 		"requirements":       contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "version": nil, "kind": nil, "digest": nil, "source": nil}},
 		"reasoningProfile":   versionedEntitySpec,
-		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "requirement": nil, "category": nil, "path": nil, "digest": nil, "expected": nil}},
+		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "target": nil, "category": nil, "path": nil, "digest": nil, "expected": nil}},
 	}
 )
 
@@ -304,9 +304,9 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		if contract.IsBlank(vector.Name) {
 			diagnostics = append(diagnostics, diagnostic("manifest.field.required", location+".name", "vector name is required"))
 		}
-		diagnostics = append(diagnostics, validateIRI(location+".requirement", vector.Requirement)...)
-		if vector.Requirement != "" && !declaredRequirements[vector.Requirement] && !shapeIdentities[vector.Requirement] {
-			diagnostics = append(diagnostics, diagnostic("manifest.vector.requirement_unknown", location+".requirement", "requirement %s is not a declared executable requirement or canonical shape", vector.Requirement))
+		diagnostics = append(diagnostics, validateIRI(location+".target", vector.Target)...)
+		if vector.Target != "" && !declaredRequirements[vector.Target] && !shapeIdentities[vector.Target] {
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.target_unknown", location+".target", "target %s is not a declared executable requirement or canonical shape", vector.Target))
 		}
 		switch vector.Category {
 		case "valid":
@@ -321,10 +321,10 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		default:
 			diagnostics = append(diagnostics, diagnostic("manifest.vector.category_invalid", location+".category", "category must be valid, invalid, or boundary"))
 		}
-		if categoriesByTarget[vector.Requirement] == nil {
-			categoriesByTarget[vector.Requirement] = map[string]bool{}
+		if categoriesByTarget[vector.Target] == nil {
+			categoriesByTarget[vector.Target] = map[string]bool{}
 		}
-		categoriesByTarget[vector.Requirement][vector.Category] = true
+		categoriesByTarget[vector.Target][vector.Category] = true
 		diagnostics = append(diagnostics, validatePath(location+".path", vector.Path)...)
 		diagnostics = append(diagnostics, validateDigest(location+".digest", vector.Digest)...)
 		if vector.Expected != "conforms" && vector.Expected != "non-conforms" {

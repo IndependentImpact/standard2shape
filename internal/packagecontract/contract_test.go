@@ -308,7 +308,7 @@ func TestVectorRequirementsMustBeDeclaredIdentities(t *testing.T) {
 	if err := json.Unmarshal(manifestData, &manifest); err != nil {
 		t.Fatal(err)
 	}
-	manifest.ConformanceVectors[0].Requirement = "https://example.org/standard/UndeclaredRequirement"
+	manifest.ConformanceVectors[0].Target = "https://example.org/standard/UndeclaredRequirement"
 	updated, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -319,7 +319,7 @@ func TestVectorRequirementsMustBeDeclaredIdentities(t *testing.T) {
 
 	_, err = Open(root)
 	var contractErr *ContractError
-	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.vector.requirement_unknown") {
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.vector.target_unknown") {
 		t.Fatalf("expected undeclared vector requirement diagnostic, got %v", err)
 	}
 }
@@ -384,7 +384,7 @@ func TestPackagesWithoutRequirementsAreAccepted(t *testing.T) {
 	}
 	manifest.Requirements = []RequirementDeclaration{}
 	for index := range manifest.ConformanceVectors {
-		manifest.ConformanceVectors[index].Requirement = manifest.CanonicalShapes[0].ID
+		manifest.ConformanceVectors[index].Target = manifest.CanonicalShapes[0].ID
 	}
 	updated, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {

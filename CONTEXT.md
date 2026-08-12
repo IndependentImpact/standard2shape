@@ -139,3 +139,7 @@ _Avoid_: Exit code, HTTP status, severity
 **Conformance Suite**:
 The complete categorization of a package's conformance vectors into valid, invalid, and boundary cases, each with its deterministic expected outcome.
 _Avoid_: Unit test suite, CI pipeline, coverage report
+
+**Vector Target**:
+The declared canonical identity a conformance vector exercises: either a methodology-owned executable requirement or a canonical shape.
+_Avoid_: Requirement definition, test subject class, focus node

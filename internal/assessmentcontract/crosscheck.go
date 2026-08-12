@@ -122,8 +122,19 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 			declaration, declared := declaredVectors[result.Vector.ID]
 			if !declared {
 				diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_unknown", location+".vector.id", "vector %s is not declared by the package manifest", result.Vector.ID))
-			} else if result.Vector.Expected != declaration.Expected {
-				diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_expected_mismatch", location+".vector.expected", "vector %s expects %s in the manifest", result.Vector.ID, declaration.Expected))
+			} else {
+				if result.Vector.Expected != declaration.Expected {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_expected_mismatch", location+".vector.expected", "vector %s expects %s in the manifest", result.Vector.ID, declaration.Expected))
+				}
+				attested := false
+				for _, evidence := range result.EvidenceChecked {
+					if evidence.Path == declaration.Path && evidence.Digest == declaration.Digest {
+						attested = true
+					}
+				}
+				if !attested {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_evidence_missing", location+".evidenceChecked", "vector %s must attest its own evidence %s under the manifest digest", result.Vector.ID, declaration.Path))
+				}
 			}
 			answeredVectors[result.Vector.ID] = true
 		}
@@ -141,9 +152,9 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 					diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_mismatch", violationLocation, "an applicability violation must attribute to the result's requirement %s", result.Requirement.ID))
 				}
 			case result.Vector != nil:
-				vectorRequirement := declaredVectors[result.Vector.ID].Requirement
-				if !canonicalShapes[violation.Requirement] && violation.Requirement != vectorRequirement {
-					diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_mismatch", violationLocation, "a vector violation must attribute to a declared canonical shape or the vector's requirement %s", vectorRequirement))
+				vectorTarget := declaredVectors[result.Vector.ID].Target
+				if !canonicalShapes[violation.Requirement] && violation.Requirement != vectorTarget {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_mismatch", violationLocation, "a vector violation must attribute to a declared canonical shape or the vector's target %s", vectorTarget))
 				}
 			default:
 				if !canonicalShapes[violation.Requirement] {
@@ -211,7 +222,7 @@ func CheckSuiteAgainstPackage(suite Suite, pkg packagecontract.Package) error {
 		declared[vector.ID] = vector
 	}
 	covered := map[string]bool{}
-	categoriesByRequirement := map[string]map[string]bool{}
+	categoriesByTarget := map[string]map[string]bool{}
 	for index, vector := range suite.Vectors {
 		location := fmt.Sprintf("vectors[%d]", index)
 		declaredVector, exists := declared[vector.ID]
@@ -222,33 +233,33 @@ func CheckSuiteAgainstPackage(suite Suite, pkg packagecontract.Package) error {
 		if vector.Expected != declaredVector.Expected {
 			diagnostics = append(diagnostics, contract.Diag("suite.vector.expected_mismatch", location+".expected", "vector %s expects %s in the manifest", vector.ID, declaredVector.Expected))
 		}
-		if vector.Requirement != declaredVector.Requirement {
-			diagnostics = append(diagnostics, contract.Diag("suite.vector.requirement_mismatch", location+".requirement", "vector %s exercises requirement %s in the manifest", vector.ID, declaredVector.Requirement))
+		if vector.Target != declaredVector.Target {
+			diagnostics = append(diagnostics, contract.Diag("suite.vector.target_mismatch", location+".target", "vector %s exercises target %s in the manifest", vector.ID, declaredVector.Target))
 		}
 		if vector.Category != declaredVector.Category {
 			diagnostics = append(diagnostics, contract.Diag("suite.vector.category_mismatch", location+".category", "vector %s is categorized %s in the manifest", vector.ID, declaredVector.Category))
 		}
 		covered[vector.ID] = true
-		if categoriesByRequirement[declaredVector.Requirement] == nil {
-			categoriesByRequirement[declaredVector.Requirement] = map[string]bool{}
+		if categoriesByTarget[declaredVector.Target] == nil {
+			categoriesByTarget[declaredVector.Target] = map[string]bool{}
 		}
-		categoriesByRequirement[declaredVector.Requirement][vector.Category] = true
+		categoriesByTarget[declaredVector.Target][vector.Category] = true
 	}
 	for _, vector := range pkg.Manifest.ConformanceVectors {
 		if !covered[vector.ID] {
 			diagnostics = append(diagnostics, contract.Diag("suite.vector.missing", "vectors", "manifest vector %s is not categorized by the suite", vector.ID))
 		}
 	}
-	seenRequirements := map[string]bool{}
+	seenTargets := map[string]bool{}
 	for _, vector := range pkg.Manifest.ConformanceVectors {
-		if seenRequirements[vector.Requirement] {
+		if seenTargets[vector.Target] {
 			continue
 		}
-		seenRequirements[vector.Requirement] = true
-		categories := categoriesByRequirement[vector.Requirement]
+		seenTargets[vector.Target] = true
+		categories := categoriesByTarget[vector.Target]
 		for _, category := range []string{"valid", "invalid", "boundary"} {
 			if !categories[category] {
-				diagnostics = append(diagnostics, contract.Diag("suite.category.missing", "vectors", "manifest requirement %s has no %s vector in the suite", vector.Requirement, category))
+				diagnostics = append(diagnostics, contract.Diag("suite.category.missing", "vectors", "manifest target %s has no %s vector in the suite", vector.Target, category))
 			}
 		}
 	}

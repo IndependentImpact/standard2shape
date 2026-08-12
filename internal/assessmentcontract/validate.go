@@ -269,11 +269,11 @@ func validateSuite(suite Suite) []contract.Diagnostic {
 		diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", "vectors", "at least one conformance vector is required"))
 	}
 	seen := map[string]bool{}
-	categoriesByRequirement := map[string]map[string]bool{}
+	categoriesByTarget := map[string]map[string]bool{}
 	for index, vector := range suite.Vectors {
 		location := fmt.Sprintf("vectors[%d]", index)
 		diagnostics = append(diagnostics, checkIRIField(prefix, location+".id", vector.ID)...)
-		diagnostics = append(diagnostics, checkIRIField(prefix, location+".requirement", vector.Requirement)...)
+		diagnostics = append(diagnostics, checkIRIField(prefix, location+".target", vector.Target)...)
 		if seen[vector.ID] {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".vector.duplicate", location+".id", "vector is declared more than once"))
 		}
@@ -286,10 +286,10 @@ func validateSuite(suite Suite) []contract.Diagnostic {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".category.invalid", location+".category", "category must be valid, invalid, or boundary"))
 			continue
 		}
-		if categoriesByRequirement[vector.Requirement] == nil {
-			categoriesByRequirement[vector.Requirement] = map[string]bool{}
+		if categoriesByTarget[vector.Target] == nil {
+			categoriesByTarget[vector.Target] = map[string]bool{}
 		}
-		categoriesByRequirement[vector.Requirement][vector.Category] = true
+		categoriesByTarget[vector.Target][vector.Category] = true
 		if vector.Expected == "" {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".field.required", location+".expected", "field is required"))
 			continue
@@ -305,10 +305,10 @@ func validateSuite(suite Suite) []contract.Diagnostic {
 			diagnostics = append(diagnostics, contract.Diag(prefix+".category.expected_mismatch", location, "an invalid vector must expect non-conforms"))
 		}
 	}
-	for requirement, categories := range categoriesByRequirement {
+	for target, categories := range categoriesByTarget {
 		for _, category := range []string{"valid", "invalid", "boundary"} {
 			if !categories[category] {
-				diagnostics = append(diagnostics, contract.Diag(prefix+".category.missing", "vectors", "requirement %s has no %s vector", requirement, category))
+				diagnostics = append(diagnostics, contract.Diag(prefix+".category.missing", "vectors", "target %s has no %s vector", target, category))
 			}
 		}
 	}

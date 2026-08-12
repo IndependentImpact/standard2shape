@@ -47,7 +47,7 @@ var (
 	suiteSpec = contract.ObjectSpec{
 		"suiteVersion": nil,
 		"package":      packageRefSpec,
-		"vectors":      contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "requirement": nil, "category": nil, "expected": nil}},
+		"vectors":      contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "target": nil, "category": nil, "expected": nil}},
 	}
 )
 
