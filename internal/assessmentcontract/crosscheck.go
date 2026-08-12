@@ -76,17 +76,21 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 	for _, artifact := range pkg.Manifest.Artifacts {
 		memberDigests[artifact.Path] = artifact.Digest
 	}
-	violationTargets := map[string]bool{}
+	canonicalShapes := map[string]bool{}
 	for _, shape := range pkg.Manifest.CanonicalShapes {
-		violationTargets[shape.ID] = true
+		canonicalShapes[shape.ID] = true
+	}
+	violationTargets := map[string]bool{}
+	for shape := range canonicalShapes {
+		violationTargets[shape] = true
 	}
 	for _, requirement := range pkg.Manifest.Requirements {
 		violationTargets[requirement.ID] = true
 	}
-	declaredVectors := map[string]string{}
+	declaredVectors := map[string]packagecontract.ConformanceVector{}
 	for _, vector := range pkg.Manifest.ConformanceVectors {
 		memberDigests[vector.Path] = vector.Digest
-		declaredVectors[vector.ID] = vector.Expected
+		declaredVectors[vector.ID] = vector
 	}
 
 	answeredChecks := map[string]bool{}
@@ -115,17 +119,36 @@ func CheckAgainstRequest(request Request, assessment Assessment, pkg packagecont
 			}
 		}
 		if result.Vector != nil {
-			expected, declared := declaredVectors[result.Vector.ID]
+			declaration, declared := declaredVectors[result.Vector.ID]
 			if !declared {
 				diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_unknown", location+".vector.id", "vector %s is not declared by the package manifest", result.Vector.ID))
-			} else if result.Vector.Expected != expected {
-				diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_expected_mismatch", location+".vector.expected", "vector %s expects %s in the manifest", result.Vector.ID, expected))
+			} else if result.Vector.Expected != declaration.Expected {
+				diagnostics = append(diagnostics, contract.Diag("assessment.request.vector_expected_mismatch", location+".vector.expected", "vector %s expects %s in the manifest", result.Vector.ID, declaration.Expected))
 			}
 			answeredVectors[result.Vector.ID] = true
 		}
 		for violationIndex, violation := range result.Violations {
+			violationLocation := fmt.Sprintf("%s.violations[%d].requirement", location, violationIndex)
 			if !violationTargets[violation.Requirement] {
-				diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_unknown", fmt.Sprintf("%s.violations[%d].requirement", location, violationIndex), "violation names %s, which is neither a declared canonical shape nor a declared executable requirement", violation.Requirement))
+				diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_unknown", violationLocation, "violation names %s, which is neither a declared canonical shape nor a declared executable requirement", violation.Requirement))
+				continue
+			}
+			// Attribution is bound to the result's own evaluation context,
+			// not the package-wide identity union.
+			switch {
+			case result.Requirement != nil:
+				if violation.Requirement != result.Requirement.ID {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_mismatch", violationLocation, "an applicability violation must attribute to the result's requirement %s", result.Requirement.ID))
+				}
+			case result.Vector != nil:
+				vectorRequirement := declaredVectors[result.Vector.ID].Requirement
+				if !canonicalShapes[violation.Requirement] && violation.Requirement != vectorRequirement {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_mismatch", violationLocation, "a vector violation must attribute to a declared canonical shape or the vector's requirement %s", vectorRequirement))
+				}
+			default:
+				if !canonicalShapes[violation.Requirement] {
+					diagnostics = append(diagnostics, contract.Diag("assessment.request.violation_requirement_mismatch", violationLocation, "a %s violation must attribute to a declared canonical shape", result.Check))
+				}
 			}
 		}
 		for evidenceIndex, evidence := range result.EvidenceChecked {

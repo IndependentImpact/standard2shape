@@ -265,10 +265,20 @@ func validateManifest(manifest Manifest) []Diagnostic {
 	if len(manifest.Requirements) == 0 {
 		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "requirements", "at least one executable requirement is required"))
 	}
+	canonicalIdentities := map[string]bool{}
+	for _, shape := range manifest.CanonicalShapes {
+		canonicalIdentities[shape.ID] = true
+	}
+	for _, reference := range manifest.References {
+		canonicalIdentities[reference.ID] = true
+	}
 	declaredRequirements := map[string]bool{}
 	for index, requirement := range manifest.Requirements {
 		location := fmt.Sprintf("requirements[%d]", index)
 		diagnostics = append(diagnostics, validateIRI(location+".id", requirement.ID)...)
+		if canonicalIdentities[requirement.ID] {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.conflict", location+".id", "requirement identity collides with a canonical shape or reference"))
+		}
 		diagnostics = append(diagnostics, validateVersion(location+".version", requirement.Version)...)
 		if requirement.Kind != "semantic" && requirement.Kind != "quantitative" {
 			diagnostics = append(diagnostics, diagnostic("manifest.requirement.kind_invalid", location+".kind", "requirement kind must be semantic or quantitative"))

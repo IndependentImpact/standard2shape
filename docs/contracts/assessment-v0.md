@@ -35,7 +35,7 @@ The outcome enumeration distinguishes the five dispositions the contract must ke
 - `unsupported` — the evaluator does not implement the requested capability;
 - `indeterminate` — applicability could not be decided from the evidence; it is defined only for the two applicability checks.
 
-The last three require an explanatory `message` and carry no violations. Violations record the violated requirement IRI, a severity (`violation`, `warning`, `info`), a message, and optionally the focus node, property path, and source member. Violation attribution is bound to canonical identities: the violated requirement must be a canonical shape or executable requirement the package declares, so an adapter cannot attribute findings to invented IRIs.
+The last three require an explanatory `message` and carry no violations. Violations record the violated requirement IRI, a severity (`violation`, `warning`, `info`), a message, and optionally the focus node, property path, and source member. Violation attribution is bound to canonical identities and to the result's own evaluation context: an applicability violation must attribute to the result's requirement, a vector violation to a declared canonical shape or the vector's own requirement, and any other violation to a declared canonical shape — so an adapter can neither invent IRIs nor shift findings between requirements.
 
 A test-vector result identifies its vector with the expected outcome and, when the check ran, the actual outcome. The result conforms exactly when actual matches expected; observed violations belong to the vector's evidence, so an expected-invalid vector that fails as expected is a `conforms` result carrying violations.
 
@@ -68,7 +68,7 @@ Contract errors reuse the package-contract diagnostic form: stable code, locatio
 - `suite.category.invalid` / `.category.missing` / `.category.expected_mismatch` — per-requirement category coverage and expectation coupling;
 - `suite.vector.duplicate` / `.vector.unknown` / `.vector.missing` / `.vector.expected_mismatch` / `.vector.requirement_mismatch` — suite/package coverage and manifest binding;
 - `assessment.request.package_unbound` / `.profile_unbound` / `.requirement_unknown` / `.requirement_uncheckable` / `.check_unanswerable` — a request that is not bound to the supplied package or cannot be answered against it;
-- `assessment.request.package_mismatch` / `.profile_mismatch` / `.check_missing` / `.check_unrequested` / `.requirement_missing` / `.requirement_unrequested` / `.requirement_kind_mismatch` / `.requirement_version_mismatch` / `.violation_requirement_unknown` / `.evidence_missing` / `.evidence_mismatch` / `.evidence_unknown` / `.vector_missing` / `.vector_unknown` / `.vector_expected_mismatch` — an assessment that does not answer its request against its package.
+- `assessment.request.package_mismatch` / `.profile_mismatch` / `.check_missing` / `.check_unrequested` / `.requirement_missing` / `.requirement_unrequested` / `.requirement_kind_mismatch` / `.requirement_version_mismatch` / `.violation_requirement_unknown` / `.violation_requirement_mismatch` / `.evidence_missing` / `.evidence_mismatch` / `.evidence_unknown` / `.vector_missing` / `.vector_unknown` / `.vector_expected_mismatch` — an assessment that does not answer its request against its package.
 
 ## Schema and verifier alignment
 

@@ -443,6 +443,53 @@ func TestBareApplicabilityRequirementsMustBeInventoried(t *testing.T) {
 	}
 }
 
+func TestUntypedRequirementObjectsMustBeInventoried(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/DemoMethodologyV1> <https://standard2shape.dev/vocab#hasRequirement> <https://example.org/standard/UntypedMysteryRequirement> .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.undeclared") {
+		t.Fatalf("an untyped hasRequirement object must be inventoried, got %v", err)
+	}
+}
+
+func TestRequirementIdentitiesCannotCollideWithCanonicalIdentities(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Requirements[0].ID = manifest.CanonicalShapes[0].ID
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.requirement.conflict") {
+		t.Fatalf("a requirement identity colliding with a canonical shape must be rejected, got %v", err)
+	}
+}
+
 func TestGraphRequirementsMustBeInventoried(t *testing.T) {
 	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
 	referencesPath := filepath.Join(root, "references.ttl")

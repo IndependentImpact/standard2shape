@@ -37,7 +37,7 @@
   "references": [],
   "requirements": [
     {
-      "id": "https://example.org/DuplicateShape",
+      "id": "https://example.org/DuplicateRequirement",
       "version": "1.0.0",
       "kind": "semantic",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -53,7 +53,7 @@
     {
       "id": "https://example.org/tests/duplicate-valid",
       "name": "duplicate valid case",
-      "requirement": "https://example.org/DuplicateShape",
+      "requirement": "https://example.org/DuplicateRequirement",
       "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -61,7 +61,7 @@
     {
       "id": "https://example.org/tests/duplicate-boundary",
       "name": "duplicate boundary case",
-      "requirement": "https://example.org/DuplicateShape",
+      "requirement": "https://example.org/DuplicateRequirement",
       "path": "data-boundary.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -69,7 +69,7 @@
     {
       "id": "https://example.org/tests/duplicate-invalid",
       "name": "duplicate invalid case",
-      "requirement": "https://example.org/DuplicateShape",
+      "requirement": "https://example.org/DuplicateRequirement",
       "path": "data-invalid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "non-conforms"

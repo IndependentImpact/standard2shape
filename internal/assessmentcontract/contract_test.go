@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/IndependentImpact/standard2shape/internal/contract"
 	"github.com/IndependentImpact/standard2shape/internal/packagecontract"
+	"github.com/IndependentImpact/standard2shape/internal/tracer"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
@@ -455,6 +457,38 @@ func TestViolationAttributionMustUseCanonicalIdentities(t *testing.T) {
 	}
 }
 
+func TestViolationAttributionIsBoundToTheResultContext(t *testing.T) {
+	request, err := DecodeRequest(fixture(t, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := DecodeAssessment(fixture(t, "assessment-valid.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := packagecontract.Open(filepath.Join("..", "..", "fixtures", "tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment.Results = append([]CheckResult{}, assessment.Results...)
+	for index, result := range assessment.Results {
+		if result.Check == CheckSemanticApplicability {
+			result.Outcome = OutcomeNonConforms
+			result.Violations = []Violation{{
+				Requirement: "https://example.org/standard/ProjectTitleShape",
+				Severity:    "violation",
+				Message:     "attributed to a declared identity outside this result's context",
+			}}
+			assessment.Results[index] = result
+		}
+	}
+	err = CheckAgainstRequest(request, assessment, pkg)
+	var contractErr *contract.Error
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "assessment.request.violation_requirement_mismatch") {
+		t.Fatalf("an applicability violation must attribute to its own requirement, got %v", err)
+	}
+}
+
 func TestRequestMustBindToSuppliedPackage(t *testing.T) {
 	request, err := DecodeRequest(fixture(t, "request.json"))
 	if err != nil {
@@ -613,9 +647,32 @@ func (adapter localAdapter) Evaluate(request Request) (Assessment, error) {
 			EvidenceChecked: []EvidenceRef{},
 		})
 	}
+	// Vector outcomes come from actually evaluating the pinned evidence with
+	// the tracer's SHACL engine, not from replaying the manifest expectation.
+	session, err := tracer.NewSession(adapter.root)
+	if err != nil {
+		return Assessment{}, err
+	}
+	defer session.Close()
+	casesByName := map[string]tracer.ValidationCase{}
+	for _, validationCase := range session.Snapshot().Assessment.Cases {
+		casesByName[validationCase.Name] = validationCase
+	}
 	for _, vector := range pkg.Manifest.ConformanceVectors {
+		evaluated, found := casesByName[vector.Name]
+		if !found {
+			return Assessment{}, fmt.Errorf("vector %s was not evaluated", vector.ID)
+		}
+		actual := OutcomeNonConforms
+		if evaluated.Conforms {
+			actual = OutcomeConforms
+		}
+		outcome := OutcomeConforms
+		if actual != vector.Expected {
+			outcome = OutcomeNonConforms
+		}
 		violations := []Violation{}
-		if vector.Expected == OutcomeNonConforms {
+		if actual == OutcomeNonConforms {
 			violations = append(violations, Violation{
 				Requirement: "https://example.org/standard/ProjectTitleShape",
 				Severity:    "violation",
@@ -627,10 +684,10 @@ func (adapter localAdapter) Evaluate(request Request) (Assessment, error) {
 		}
 		assessment.Results = append(assessment.Results, CheckResult{
 			Check:           CheckTestVectors,
-			Outcome:         OutcomeConforms,
+			Outcome:         outcome,
 			Violations:      violations,
 			EvidenceChecked: []EvidenceRef{{Path: vector.Path, Digest: vector.Digest}},
-			Vector:          &VectorResult{ID: vector.ID, Expected: vector.Expected, Actual: vector.Expected},
+			Vector:          &VectorResult{ID: vector.ID, Expected: vector.Expected, Actual: actual},
 		})
 	}
 	return assessment, nil

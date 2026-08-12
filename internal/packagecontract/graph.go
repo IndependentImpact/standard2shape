@@ -137,6 +137,18 @@ func validateRequirements(manifest Manifest, triples []sourcedTriple) []Diagnost
 			swept[subject] = true
 		}
 	}
+	// The range of s2s:hasRequirement makes every object an applicability
+	// requirement even without an explicit rdf:type statement.
+	for _, statement := range triples {
+		if statement.Triple.Pred.String() != s2sHasRequirement {
+			continue
+		}
+		object := statement.Triple.Obj.String()
+		if !declared[object] && !swept[object] {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.undeclared", statement.Source, "executable requirement %s is not inventoried by the manifest", object))
+		}
+		swept[object] = true
+	}
 	return diagnostics
 }
 

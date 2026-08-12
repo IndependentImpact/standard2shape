@@ -37,7 +37,7 @@
   "references": [],
   "requirements": [
     {
-      "id": "https://example.org/ConflictShape",
+      "id": "https://example.org/ConflictRequirement",
       "version": "1.0.0",
       "kind": "semantic",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -53,7 +53,7 @@
     {
       "id": "https://example.org/tests/conflict-valid",
       "name": "conflict valid case",
-      "requirement": "https://example.org/ConflictShape",
+      "requirement": "https://example.org/ConflictRequirement",
       "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -61,7 +61,7 @@
     {
       "id": "https://example.org/tests/conflict-boundary",
       "name": "conflict boundary case",
-      "requirement": "https://example.org/ConflictShape",
+      "requirement": "https://example.org/ConflictRequirement",
       "path": "data-boundary.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -69,7 +69,7 @@
     {
       "id": "https://example.org/tests/conflict-invalid",
       "name": "conflict invalid case",
-      "requirement": "https://example.org/ConflictShape",
+      "requirement": "https://example.org/ConflictRequirement",
       "path": "data-invalid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "non-conforms"

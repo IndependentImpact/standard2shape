@@ -31,7 +31,7 @@
   "references": [],
   "requirements": [
     {
-      "id": "https://example.org/MissingShape",
+      "id": "https://example.org/MissingRequirement",
       "version": "1.0.0",
       "kind": "semantic",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -47,7 +47,7 @@
     {
       "id": "https://example.org/tests/missing-valid",
       "name": "missing valid case",
-      "requirement": "https://example.org/MissingShape",
+      "requirement": "https://example.org/MissingRequirement",
       "path": "data-valid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -55,7 +55,7 @@
     {
       "id": "https://example.org/tests/missing-boundary",
       "name": "missing boundary case",
-      "requirement": "https://example.org/MissingShape",
+      "requirement": "https://example.org/MissingRequirement",
       "path": "data-boundary.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "conforms"
@@ -63,7 +63,7 @@
     {
       "id": "https://example.org/tests/missing-invalid",
       "name": "missing invalid case",
-      "requirement": "https://example.org/MissingShape",
+      "requirement": "https://example.org/MissingRequirement",
       "path": "data-invalid.ttl",
       "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "non-conforms"
