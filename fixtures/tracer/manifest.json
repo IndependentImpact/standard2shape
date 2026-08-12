@@ -40,7 +40,7 @@
       "path": "references.ttl",
       "role": "references",
       "mediaType": "text/turtle",
-      "digest": "sha256:8b2bd8801db2b634dec043b2951ad73b38b289c384906c987b80250cf26d1fab"
+      "digest": "sha256:34e6b1c826f1bd17c202a01c831efe8af6c90995d5db89c0e0652ce5509ef1ca"
     }
   ],
   "imports": [
@@ -68,6 +68,15 @@
       "source": "references.ttl"
     }
   ],
+  "requirements": [
+    {
+      "id": "https://example.org/standard/ProjectTitleRequirement",
+      "version": "1.0.0",
+      "kind": "semantic",
+      "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "source": "references.ttl"
+    }
+  ],
   "reasoningProfile": {
     "id": "https://example.org/standard/NoEntailmentProfile",
     "version": "0.1.0",
@@ -77,13 +86,26 @@
     {
       "id": "https://example.org/standards/demo/tests/complete-project",
       "name": "complete project",
+      "target": "https://example.org/standard/ProjectTitleRequirement",
+      "category": "valid",
       "path": "data-valid.ttl",
       "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f",
       "expected": "conforms"
     },
     {
+      "id": "https://example.org/standards/demo/tests/single-character-title",
+      "name": "project title at the minimum non-blank length",
+      "target": "https://example.org/standard/ProjectTitleRequirement",
+      "category": "boundary",
+      "path": "data-boundary.ttl",
+      "digest": "sha256:987705b383e3c024872a46a1940919d4ee19ebcc240555fc3c46de46f3470a10",
+      "expected": "conforms"
+    },
+    {
       "id": "https://example.org/standards/demo/tests/missing-title",
       "name": "project missing required title",
+      "target": "https://example.org/standard/ProjectTitleRequirement",
+      "category": "invalid",
       "path": "data-invalid.ttl",
       "digest": "sha256:0ede0b49823df17f7d5d47f19e1265001b4059c0f9ae81cd2322f8a489e00df7",
       "expected": "non-conforms"

@@ -30,7 +30,7 @@ func TestSessionOpensRepresentativeBundleOffline(t *testing.T) {
 	if len(snapshot.Unsupported) != 1 || snapshot.Unsupported[0].Kind != "SHACL-SPARQL" {
 		t.Fatalf("unsupported summary = %#v", snapshot.Unsupported)
 	}
-	if len(snapshot.Assessment.Cases) != 2 {
+	if len(snapshot.Assessment.Cases) != 3 {
 		t.Fatalf("validation cases = %#v", snapshot.Assessment.Cases)
 	}
 	for _, testCase := range snapshot.Assessment.Cases {

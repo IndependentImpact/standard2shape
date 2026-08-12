@@ -10,34 +10,40 @@ import (
 )
 
 const (
-	rdfType            = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-	owlImports         = "http://www.w3.org/2002/07/owl#imports"
-	shNodeShape        = "http://www.w3.org/ns/shacl#NodeShape"
-	shPropertyShape    = "http://www.w3.org/ns/shacl#PropertyShape"
-	uiOrder            = "https://shape2form.dev/vocab/ui#order"
-	s2sStandardRelease = "https://standard2shape.dev/vocab#StandardRelease"
-	s2sBundle          = "https://standard2shape.dev/vocab#OrderedShapeBundle"
-	s2sSection         = "https://standard2shape.dev/vocab#DocumentSection"
-	s2sPlacement       = "https://standard2shape.dev/vocab#DocumentPlacement"
-	s2sIndicatorRef    = "https://standard2shape.dev/vocab#IndicatorReference"
-	s2sMethodologyRef  = "https://standard2shape.dev/vocab#MethodologyReference"
-	s2sReasoning       = "https://standard2shape.dev/vocab#ReasoningProfile"
-	s2sDefinesDocument = "https://standard2shape.dev/vocab#definesDocument"
-	s2sRootSection     = "https://standard2shape.dev/vocab#hasRootSection"
-	s2sMember          = "https://standard2shape.dev/vocab#member"
-	s2sPosition        = "https://standard2shape.dev/vocab#position"
-	s2sShape           = "https://standard2shape.dev/vocab#shape"
-	s2sCanonicalGuide  = "https://standard2shape.dev/vocab#canonicalGuidance"
-	s2sReleaseVersion  = "https://standard2shape.dev/vocab#releaseVersion"
-	s2sArtifactVersion = "https://standard2shape.dev/vocab#artifactVersion"
-	s2sArtifactDigest  = "https://standard2shape.dev/vocab#artifactDigest"
-	s2sUsesReasoning   = "https://standard2shape.dev/vocab#usesReasoningProfile"
-	s2sProfileVersion  = "https://standard2shape.dev/vocab#profileVersion"
-	s2sEntailment      = "https://standard2shape.dev/vocab#entailmentRegime"
-	s2sAuthIndicator   = "https://standard2shape.dev/vocab#authorizesIndicator"
-	s2sAuthMethodology = "https://standard2shape.dev/vocab#authorizesMethodology"
-	s2sForIndicator    = "https://standard2shape.dev/vocab#forIndicator"
-	xsdPositiveInteger = "http://www.w3.org/2001/XMLSchema#positiveInteger"
+	rdfType             = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+	owlImports          = "http://www.w3.org/2002/07/owl#imports"
+	shNodeShape         = "http://www.w3.org/ns/shacl#NodeShape"
+	shPropertyShape     = "http://www.w3.org/ns/shacl#PropertyShape"
+	uiOrder             = "https://shape2form.dev/vocab/ui#order"
+	s2sStandardRelease  = "https://standard2shape.dev/vocab#StandardRelease"
+	s2sBundle           = "https://standard2shape.dev/vocab#OrderedShapeBundle"
+	s2sSection          = "https://standard2shape.dev/vocab#DocumentSection"
+	s2sPlacement        = "https://standard2shape.dev/vocab#DocumentPlacement"
+	s2sIndicatorRef     = "https://standard2shape.dev/vocab#IndicatorReference"
+	s2sMethodologyRef   = "https://standard2shape.dev/vocab#MethodologyReference"
+	s2sReasoning        = "https://standard2shape.dev/vocab#ReasoningProfile"
+	s2sApplicabilityReq = "https://standard2shape.dev/vocab#ApplicabilityRequirement"
+	s2sSemanticReq      = "https://standard2shape.dev/vocab#SemanticRequirement"
+	s2sQuantitativeReq  = "https://standard2shape.dev/vocab#QuantitativeRequirement"
+	s2sHasRequirement   = "https://standard2shape.dev/vocab#hasRequirement"
+	s2sReqVersion       = "https://standard2shape.dev/vocab#requirementVersion"
+	s2sReqDigest        = "https://standard2shape.dev/vocab#requirementDigest"
+	s2sDefinesDocument  = "https://standard2shape.dev/vocab#definesDocument"
+	s2sRootSection      = "https://standard2shape.dev/vocab#hasRootSection"
+	s2sMember           = "https://standard2shape.dev/vocab#member"
+	s2sPosition         = "https://standard2shape.dev/vocab#position"
+	s2sShape            = "https://standard2shape.dev/vocab#shape"
+	s2sCanonicalGuide   = "https://standard2shape.dev/vocab#canonicalGuidance"
+	s2sReleaseVersion   = "https://standard2shape.dev/vocab#releaseVersion"
+	s2sArtifactVersion  = "https://standard2shape.dev/vocab#artifactVersion"
+	s2sArtifactDigest   = "https://standard2shape.dev/vocab#artifactDigest"
+	s2sUsesReasoning    = "https://standard2shape.dev/vocab#usesReasoningProfile"
+	s2sProfileVersion   = "https://standard2shape.dev/vocab#profileVersion"
+	s2sEntailment       = "https://standard2shape.dev/vocab#entailmentRegime"
+	s2sAuthIndicator    = "https://standard2shape.dev/vocab#authorizesIndicator"
+	s2sAuthMethodology  = "https://standard2shape.dev/vocab#authorizesMethodology"
+	s2sForIndicator     = "https://standard2shape.dev/vocab#forIndicator"
+	xsdPositiveInteger  = "http://www.w3.org/2001/XMLSchema#positiveInteger"
 )
 
 type sourcedTriple struct {
@@ -77,8 +83,72 @@ func validateGraph(manifest Manifest, triples []sourcedTriple) []Diagnostic {
 	diagnostics = append(diagnostics, validateStandardRelease(manifest, triples)...)
 	diagnostics = append(diagnostics, validateReasoningProfile(manifest, triples)...)
 	diagnostics = append(diagnostics, validateReferences(manifest, triples)...)
+	diagnostics = append(diagnostics, validateRequirements(manifest, triples)...)
 	diagnostics = append(diagnostics, validateDocuments(manifest, triples)...)
 	diagnostics = append(diagnostics, validateShapes(manifest, triples)...)
+	return diagnostics
+}
+
+// validateRequirements derives the executable-requirement inventory from the
+// canonical graph: every manifest entry must be a typed, versioned,
+// methodology-owned requirement definition, and every requirement definition
+// in the graph must be inventoried.
+func validateRequirements(manifest Manifest, triples []sourcedTriple) []Diagnostic {
+	var diagnostics []Diagnostic
+	typeForKind := map[string]string{"semantic": s2sSemanticReq, "quantitative": s2sQuantitativeReq}
+	methodologies := map[string]bool{}
+	for _, reference := range manifest.References {
+		if reference.Kind == "methodology" {
+			methodologies[reference.ID] = true
+		}
+	}
+	declared := map[string]bool{}
+	for _, requirement := range manifest.Requirements {
+		declared[requirement.ID] = true
+		typeIRI, known := typeForKind[requirement.Kind]
+		if !known {
+			continue
+		}
+		diagnostics = append(diagnostics, requireTypedEntity(triples, requirement.ID, typeIRI, requirement.Source, "graph.requirement.invalid")...)
+		if value := singleLiteral(triples, requirement.ID, s2sReqVersion); value != requirement.Version {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement version for %s is %q, expected %q", requirement.ID, value, requirement.Version))
+		}
+		if value := singleLiteral(triples, requirement.ID, s2sReqDigest); value != requirement.Digest {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement digest for %s is %q, expected %q", requirement.ID, value, requirement.Digest))
+		}
+		owners := subjectsWith(triples, s2sHasRequirement, requirement.ID)
+		if len(owners) != 1 || !methodologies[owners[0]] {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", requirement.Source, "requirement %s must be owned by exactly one declared methodology reference", requirement.ID))
+		}
+	}
+	// The semantic and quantitative classes are disjoint: a record typed as
+	// both could pass as either manifest-selected kind.
+	for _, subject := range subjectsWith(triples, rdfType, s2sSemanticReq) {
+		if hasType(triples, subject, s2sQuantitativeReq) {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.invalid", sourceForType(triples, subject, s2sSemanticReq), "requirement %s cannot be both semantic and quantitative", subject))
+		}
+	}
+	swept := map[string]bool{}
+	for _, typeIRI := range []string{s2sApplicabilityReq, s2sSemanticReq, s2sQuantitativeReq} {
+		for _, subject := range subjectsWith(triples, rdfType, typeIRI) {
+			if !declared[subject] && !swept[subject] {
+				diagnostics = append(diagnostics, diagnostic("graph.requirement.undeclared", sourceForType(triples, subject, typeIRI), "executable requirement %s is not inventoried by the manifest", subject))
+			}
+			swept[subject] = true
+		}
+	}
+	// The range of s2s:hasRequirement makes every object an applicability
+	// requirement even without an explicit rdf:type statement.
+	for _, statement := range triples {
+		if statement.Triple.Pred.String() != s2sHasRequirement {
+			continue
+		}
+		object := statement.Triple.Obj.String()
+		if !declared[object] && !swept[object] {
+			diagnostics = append(diagnostics, diagnostic("graph.requirement.undeclared", statement.Source, "executable requirement %s is not inventoried by the manifest", object))
+		}
+		swept[object] = true
+	}
 	return diagnostics
 }
 

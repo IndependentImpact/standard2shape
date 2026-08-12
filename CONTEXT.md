@@ -123,3 +123,23 @@ _Avoid_: Requirement definition, source code ownership
 **Applicability Assessment**:
 The result of evaluating applicability requirements, containing conformance, violations, and an attestation of what was checked.
 _Avoid_: Boolean result, form validation
+
+**Validation Adapter**:
+A deployment-specific implementation of the shared validation interface — local tooling or hosted execution — that runs requested checks against an immutable package without changing normative meaning.
+_Avoid_: Source of truth, evaluator of record, validator semantics
+
+**Validation Assessment**:
+The serialized answer to one validation request: per-check outcomes, violations, evidence attestations, and the evaluator identity and timestamps of the run.
+_Avoid_: Log file, UI report, boolean result
+
+**Check Outcome**:
+The single disposition of one executed check: conforms, non-conforms, evaluator failure, unsupported capability, or indeterminate applicability.
+_Avoid_: Exit code, HTTP status, severity
+
+**Conformance Suite**:
+The complete categorization of a package's conformance vectors into valid, invalid, and boundary cases, each with its deterministic expected outcome.
+_Avoid_: Unit test suite, CI pipeline, coverage report
+
+**Vector Target**:
+The declared canonical identity a conformance vector exercises: either a methodology-owned executable requirement or a canonical shape.
+_Avoid_: Requirement definition, test subject class, focus node

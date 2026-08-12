@@ -1,0 +1,29 @@
+{
+  "requestVersion": "0.1",
+  "package": {
+    "id": "https://example.org/standards/demo/packages/0.1.0",
+    "version": "0.1.0",
+    "digest": "sha256:b6832f5a3a4eabcca4cad8e085aa82ff083e19aa7334827659e911fe92251c8b"
+  },
+  "reasoningProfile": {
+    "id": "https://example.org/standard/NoEntailmentProfile",
+    "version": "0.1.0"
+  },
+  "checks": [
+    "syntax",
+    "package-structure",
+    "shacl",
+    "reasoning-profile",
+    "semantic-applicability",
+    "test-vectors"
+  ],
+  "evidence": [
+    {
+      "path": "data-valid.ttl",
+      "digest": "sha256:0ec5dc6467ca0088cad5f647e5b35ba0cac55d9a01ab43263671becd267ddb2f"
+    }
+  ],
+  "requirements": [
+    "https://example.org/standard/ProjectTitleRequirement"
+  ]
+}

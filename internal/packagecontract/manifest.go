@@ -2,24 +2,16 @@ package packagecontract
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
-)
 
-var (
-	versionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
-	digestPattern  = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+	"github.com/IndependentImpact/standard2shape/internal/contract"
 )
 
 func Open(root string) (Package, error) {
@@ -112,6 +104,7 @@ func Normalize(manifest Manifest) ([]byte, error) {
 	normalized.Artifacts = append([]SourceArtifact(nil), manifest.Artifacts...)
 	normalized.Imports = append([]ImportReference{}, manifest.Imports...)
 	normalized.References = append([]ArtifactReference{}, manifest.References...)
+	normalized.Requirements = append([]RequirementDeclaration(nil), manifest.Requirements...)
 	normalized.DocumentRoots = append([]GraphEntity(nil), manifest.DocumentRoots...)
 	normalized.CanonicalShapes = append([]GraphEntity(nil), manifest.CanonicalShapes...)
 	normalized.ConformanceVectors = append([]ConformanceVector(nil), manifest.ConformanceVectors...)
@@ -122,6 +115,7 @@ func Normalize(manifest Manifest) ([]byte, error) {
 	sort.Slice(normalized.References, func(i, j int) bool {
 		return normalized.References[i].Kind+"\x00"+normalized.References[i].ID < normalized.References[j].Kind+"\x00"+normalized.References[j].ID
 	})
+	sort.Slice(normalized.Requirements, func(i, j int) bool { return normalized.Requirements[i].ID < normalized.Requirements[j].ID })
 	sort.Slice(normalized.DocumentRoots, func(i, j int) bool { return normalized.DocumentRoots[i].ID < normalized.DocumentRoots[j].ID })
 	sort.Slice(normalized.CanonicalShapes, func(i, j int) bool { return normalized.CanonicalShapes[i].ID < normalized.CanonicalShapes[j].ID })
 	sort.Slice(normalized.ConformanceVectors, func(i, j int) bool { return normalized.ConformanceVectors[i].ID < normalized.ConformanceVectors[j].ID })
@@ -154,125 +148,27 @@ func decodeManifest(data []byte) (Manifest, error) {
 	return manifest, nil
 }
 
-type objectSpec map[string]any
-
-type arraySpec struct{ element any }
-
 var (
-	graphEntitySpec     = objectSpec{"id": nil, "source": nil}
-	versionedEntitySpec = objectSpec{"id": nil, "version": nil, "source": nil}
-	manifestSpec        = objectSpec{
+	graphEntitySpec     = contract.ObjectSpec{"id": nil, "source": nil}
+	versionedEntitySpec = contract.ObjectSpec{"id": nil, "version": nil, "source": nil}
+	manifestSpec        = contract.ObjectSpec{
 		"manifestVersion":    nil,
 		"id":                 nil,
 		"version":            nil,
 		"standardRelease":    versionedEntitySpec,
-		"documentRoots":      arraySpec{element: graphEntitySpec},
-		"canonicalShapes":    arraySpec{element: graphEntitySpec},
-		"artifacts":          arraySpec{element: objectSpec{"path": nil, "role": nil, "mediaType": nil, "digest": nil}},
-		"imports":            arraySpec{element: objectSpec{"source": nil, "iri": nil, "version": nil, "digest": nil, "policy": nil}},
-		"references":         arraySpec{element: objectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
+		"documentRoots":      contract.ArraySpec{Element: graphEntitySpec},
+		"canonicalShapes":    contract.ArraySpec{Element: graphEntitySpec},
+		"artifacts":          contract.ArraySpec{Element: contract.ObjectSpec{"path": nil, "role": nil, "mediaType": nil, "digest": nil}},
+		"imports":            contract.ArraySpec{Element: contract.ObjectSpec{"source": nil, "iri": nil, "version": nil, "digest": nil, "policy": nil}},
+		"references":         contract.ArraySpec{Element: contract.ObjectSpec{"kind": nil, "id": nil, "version": nil, "digest": nil, "source": nil}},
+		"requirements":       contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "version": nil, "kind": nil, "digest": nil, "source": nil}},
 		"reasoningProfile":   versionedEntitySpec,
-		"conformanceVectors": arraySpec{element: objectSpec{"id": nil, "name": nil, "path": nil, "digest": nil, "expected": nil}},
+		"conformanceVectors": contract.ArraySpec{Element: contract.ObjectSpec{"id": nil, "name": nil, "target": nil, "category": nil, "path": nil, "digest": nil, "expected": nil}},
 	}
 )
 
-// Go's JSON decoder matches struct fields case-insensitively and lets later
-// duplicate keys overwrite earlier values; the closed schema allows neither.
 func checkExactFields(data []byte) []Diagnostic {
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	diagnostics, err := checkSpecValue(decoder, "manifest.json", manifestSpec)
-	if err != nil {
-		diagnostics = append(diagnostics, diagnostic("manifest.invalid", "manifest.json", "cannot inspect manifest fields: %v", err))
-	}
-	return diagnostics
-}
-
-func checkSpecValue(decoder *json.Decoder, location string, spec any) ([]Diagnostic, error) {
-	token, err := decoder.Token()
-	if err != nil {
-		return nil, err
-	}
-	delim, isDelim := token.(json.Delim)
-	switch spec := spec.(type) {
-	case objectSpec:
-		if !isDelim || delim != '{' {
-			return nil, skipOpened(decoder, token)
-		}
-		var diagnostics []Diagnostic
-		seen := map[string]bool{}
-		for decoder.More() {
-			keyToken, err := decoder.Token()
-			if err != nil {
-				return diagnostics, err
-			}
-			key := keyToken.(string)
-			child, allowed := spec[key]
-			if !allowed {
-				diagnostics = append(diagnostics, diagnostic("manifest.field.unknown", location, "field %q is not an exact-case v0.1 manifest field", key))
-				if err := skipValue(decoder); err != nil {
-					return diagnostics, err
-				}
-				continue
-			}
-			if seen[key] {
-				diagnostics = append(diagnostics, diagnostic("manifest.field.duplicate", location+"."+key, "field is declared more than once"))
-			}
-			seen[key] = true
-			childDiagnostics, err := checkSpecValue(decoder, location+"."+key, child)
-			diagnostics = append(diagnostics, childDiagnostics...)
-			if err != nil {
-				return diagnostics, err
-			}
-		}
-		_, err := decoder.Token()
-		return diagnostics, err
-	case arraySpec:
-		if !isDelim || delim != '[' {
-			return nil, skipOpened(decoder, token)
-		}
-		var diagnostics []Diagnostic
-		for index := 0; decoder.More(); index++ {
-			childDiagnostics, err := checkSpecValue(decoder, fmt.Sprintf("%s[%d]", location, index), spec.element)
-			diagnostics = append(diagnostics, childDiagnostics...)
-			if err != nil {
-				return diagnostics, err
-			}
-		}
-		_, err := decoder.Token()
-		return diagnostics, err
-	default:
-		return nil, skipOpened(decoder, token)
-	}
-}
-
-func skipValue(decoder *json.Decoder) error {
-	token, err := decoder.Token()
-	if err != nil {
-		return err
-	}
-	return skipOpened(decoder, token)
-}
-
-func skipOpened(decoder *json.Decoder, token json.Token) error {
-	delim, isDelim := token.(json.Delim)
-	if !isDelim || (delim != '{' && delim != '[') {
-		return nil
-	}
-	for depth := 1; depth > 0; {
-		token, err := decoder.Token()
-		if err != nil {
-			return err
-		}
-		if delim, ok := token.(json.Delim); ok {
-			switch delim {
-			case '{', '[':
-				depth++
-			case '}', ']':
-				depth--
-			}
-		}
-	}
-	return nil
+	return contract.CheckExactFields(data, "manifest", "manifest.json", manifestSpec)
 }
 
 func validateManifest(manifest Manifest) []Diagnostic {
@@ -366,14 +262,69 @@ func validateManifest(manifest Manifest) []Diagnostic {
 		referenceKeys[key] = true
 	}
 
+	if manifest.Requirements == nil {
+		diagnostics = append(diagnostics, diagnostic("manifest.field.required", "requirements", "requirements must be an array, possibly empty"))
+	}
+	shapeIdentities := map[string]bool{}
+	for _, shape := range manifest.CanonicalShapes {
+		shapeIdentities[shape.ID] = true
+	}
+	canonicalIdentities := map[string]bool{}
+	for shape := range shapeIdentities {
+		canonicalIdentities[shape] = true
+	}
+	for _, reference := range manifest.References {
+		canonicalIdentities[reference.ID] = true
+	}
+	declaredRequirements := map[string]bool{}
+	for index, requirement := range manifest.Requirements {
+		location := fmt.Sprintf("requirements[%d]", index)
+		diagnostics = append(diagnostics, validateIRI(location+".id", requirement.ID)...)
+		if canonicalIdentities[requirement.ID] {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.conflict", location+".id", "requirement identity collides with a canonical shape or reference"))
+		}
+		diagnostics = append(diagnostics, validateVersion(location+".version", requirement.Version)...)
+		if requirement.Kind != "semantic" && requirement.Kind != "quantitative" {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.kind_invalid", location+".kind", "requirement kind must be semantic or quantitative"))
+		}
+		diagnostics = append(diagnostics, validateDigest(location+".digest", requirement.Digest)...)
+		diagnostics = append(diagnostics, requireArtifactSource(location+".source", requirement.Source, artifactByPath)...)
+		if declaredRequirements[requirement.ID] {
+			diagnostics = append(diagnostics, diagnostic("manifest.requirement.duplicate", location+".id", "requirement is declared more than once"))
+		}
+		declaredRequirements[requirement.ID] = true
+	}
+
 	vectorPaths := map[string]ConformanceVector{}
 	vectorIDs := map[string]bool{}
+	categoriesByTarget := map[string]map[string]bool{}
 	for index, vector := range manifest.ConformanceVectors {
 		location := fmt.Sprintf("conformanceVectors[%d]", index)
 		diagnostics = append(diagnostics, validateIRI(location+".id", vector.ID)...)
-		if strings.TrimSpace(vector.Name) == "" {
+		if contract.IsBlank(vector.Name) {
 			diagnostics = append(diagnostics, diagnostic("manifest.field.required", location+".name", "vector name is required"))
 		}
+		diagnostics = append(diagnostics, validateIRI(location+".target", vector.Target)...)
+		if vector.Target != "" && !declaredRequirements[vector.Target] && !shapeIdentities[vector.Target] {
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.target_unknown", location+".target", "target %s is not a declared executable requirement or canonical shape", vector.Target))
+		}
+		switch vector.Category {
+		case "valid":
+			if vector.Expected != "conforms" {
+				diagnostics = append(diagnostics, diagnostic("manifest.vector.category_mismatch", location, "a valid vector must expect conforms"))
+			}
+		case "invalid":
+			if vector.Expected != "non-conforms" {
+				diagnostics = append(diagnostics, diagnostic("manifest.vector.category_mismatch", location, "an invalid vector must expect non-conforms"))
+			}
+		case "boundary":
+		default:
+			diagnostics = append(diagnostics, diagnostic("manifest.vector.category_invalid", location+".category", "category must be valid, invalid, or boundary"))
+		}
+		if categoriesByTarget[vector.Target] == nil {
+			categoriesByTarget[vector.Target] = map[string]bool{}
+		}
+		categoriesByTarget[vector.Target][vector.Category] = true
 		diagnostics = append(diagnostics, validatePath(location+".path", vector.Path)...)
 		diagnostics = append(diagnostics, validateDigest(location+".digest", vector.Digest)...)
 		if vector.Expected != "conforms" && vector.Expected != "non-conforms" {
@@ -395,6 +346,32 @@ func validateManifest(manifest Manifest) []Diagnostic {
 			diagnostics = append(diagnostics, diagnostic("manifest.vector.duplicate", location+".id", "vector identity is declared more than once"))
 		}
 		vectorIDs[vector.ID] = true
+	}
+
+	// SPEC: every executable requirement has mandatory valid, invalid, and
+	// boundary test vectors. The same completeness applies to any canonical
+	// shape a vector targets: a tested target is tested in all three
+	// categories.
+	checkCoverage := func(location, target string) {
+		categories := categoriesByTarget[target]
+		for _, category := range []string{"valid", "invalid", "boundary"} {
+			if !categories[category] {
+				diagnostics = append(diagnostics, diagnostic("manifest.requirement.vectors_missing", location, "vector target %s has no %s vector", target, category))
+			}
+		}
+	}
+	for index, requirement := range manifest.Requirements {
+		checkCoverage(fmt.Sprintf("requirements[%d]", index), requirement.ID)
+	}
+	shapeTargets := make([]string, 0, len(categoriesByTarget))
+	for target := range categoriesByTarget {
+		if !declaredRequirements[target] {
+			shapeTargets = append(shapeTargets, target)
+		}
+	}
+	sort.Strings(shapeTargets)
+	for _, target := range shapeTargets {
+		checkCoverage("conformanceVectors", target)
 	}
 	return diagnostics
 }
@@ -422,29 +399,28 @@ func validateVersionedEntity(location string, entity VersionedGraphEntity) []Dia
 }
 
 func validateIRI(location, value string) []Diagnostic {
-	parsed, err := url.Parse(value)
-	if err != nil || !parsed.IsAbs() {
+	if !contract.IsIRI(value) {
 		return []Diagnostic{diagnostic("manifest.iri.invalid", location, "expected an absolute IRI, got %q", value)}
 	}
 	return nil
 }
 
 func validateVersion(location, value string) []Diagnostic {
-	if !versionPattern.MatchString(value) {
+	if !contract.IsVersion(value) {
 		return []Diagnostic{diagnostic("manifest.version.invalid", location, "expected semantic version, got %q", value)}
 	}
 	return nil
 }
 
 func validateDigest(location, value string) []Diagnostic {
-	if !digestPattern.MatchString(value) {
+	if !contract.IsDigest(value) {
 		return []Diagnostic{diagnostic("manifest.digest.invalid", location, "expected lowercase sha256 digest")}
 	}
 	return nil
 }
 
 func validatePath(location, value string) []Diagnostic {
-	if value == "" || strings.Contains(value, "\\") || strings.HasPrefix(value, "/") || path.Clean(value) != value || value == "." || strings.HasPrefix(value, "../") || value == ".." {
+	if !contract.IsNormalizedPath(value) {
 		return []Diagnostic{diagnostic("manifest.path.invalid", location, "expected a normalized POSIX package-relative path, got %q", value)}
 	}
 	return nil
@@ -474,7 +450,7 @@ func readMember(root, relative, expectedDigest string) ([]byte, []Diagnostic) {
 		}
 		return nil, []Diagnostic{diagnostic(code, relative, "cannot read declared member: %v", err)}
 	}
-	actual := sha256Digest(data)
+	actual := Digest(data)
 	if actual != expectedDigest {
 		return nil, []Diagnostic{diagnostic("package.member.digest_mismatch", relative, "expected %s, got %s", expectedDigest, actual)}
 	}
@@ -517,7 +493,7 @@ func safeJoin(root, relative string) (string, error) {
 	return joined, nil
 }
 
-func sha256Digest(data []byte) string {
-	sum := sha256.Sum256(data)
-	return "sha256:" + hex.EncodeToString(sum[:])
+// Digest returns the canonical sha256:<hex> form used across the contracts.
+func Digest(data []byte) string {
+	return contract.SHA256(data)
 }

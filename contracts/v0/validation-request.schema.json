@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://standard2shape.dev/contracts/v0/validation-request.schema.json",
+  "title": "standard2shape validation request v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "requestVersion",
+    "package",
+    "reasoningProfile",
+    "checks",
+    "evidence",
+    "requirements"
+  ],
+  "properties": {
+    "requestVersion": { "const": "0.1" },
+    "package": { "$ref": "#/$defs/packageRef" },
+    "reasoningProfile": { "$ref": "#/$defs/profileRef" },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidenceRef" }
+    },
+    "requirements": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/iri" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "checks": { "contains": { "enum": ["semantic-applicability", "quantitative-applicability"] } }
+        },
+        "required": ["checks"]
+      },
+      "then": { "properties": { "requirements": { "minItems": 1 } } }
+    }
+  ],
+  "$defs": {
+    "iri": { "type": "string", "format": "iri", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "path": { "type": "string", "pattern": "^(?:[^./\\\\][^/\\\\]*|\\.[^./\\\\][^/\\\\]*|\\.\\.[^/\\\\]+)(?:/(?:[^./\\\\][^/\\\\]*|\\.[^./\\\\][^/\\\\]*|\\.\\.[^/\\\\]+))*$" },
+    "check": {
+      "enum": [
+        "syntax",
+        "package-structure",
+        "shacl",
+        "reasoning-profile",
+        "semantic-applicability",
+        "quantitative-applicability",
+        "test-vectors"
+      ]
+    },
+    "packageRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/iri" },
+        "version": { "$ref": "#/$defs/version" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "profileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "$ref": "#/$defs/iri" },
+        "version": { "$ref": "#/$defs/version" }
+      }
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

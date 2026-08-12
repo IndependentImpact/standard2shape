@@ -14,114 +14,323 @@
     "artifacts",
     "imports",
     "references",
+    "requirements",
     "reasoningProfile",
     "conformanceVectors"
   ],
   "properties": {
-    "manifestVersion": { "const": "0.1" },
-    "id": { "$ref": "#/$defs/iri" },
-    "version": { "$ref": "#/$defs/version" },
-    "standardRelease": { "$ref": "#/$defs/versionedGraphEntity" },
+    "manifestVersion": {
+      "const": "0.1"
+    },
+    "id": {
+      "$ref": "#/$defs/iri"
+    },
+    "version": {
+      "$ref": "#/$defs/version"
+    },
+    "standardRelease": {
+      "$ref": "#/$defs/versionedGraphEntity"
+    },
     "documentRoots": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/graphEntity" }
+      "items": {
+        "$ref": "#/$defs/graphEntity"
+      }
     },
     "canonicalShapes": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/graphEntity" }
+      "items": {
+        "$ref": "#/$defs/graphEntity"
+      }
     },
     "artifacts": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/artifact" }
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
     },
     "imports": {
       "type": "array",
-      "items": { "$ref": "#/$defs/import" }
+      "items": {
+        "$ref": "#/$defs/import"
+      }
     },
     "references": {
       "type": "array",
-      "items": { "$ref": "#/$defs/reference" }
+      "items": {
+        "$ref": "#/$defs/reference"
+      }
     },
-    "reasoningProfile": { "$ref": "#/$defs/versionedGraphEntity" },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/requirement"
+      }
+    },
+    "reasoningProfile": {
+      "$ref": "#/$defs/versionedGraphEntity"
+    },
     "conformanceVectors": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/vector" }
+      "items": {
+        "$ref": "#/$defs/vector"
+      }
     }
   },
   "$defs": {
-    "iri": { "type": "string", "format": "iri", "minLength": 1 },
-    "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
-    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "path": { "type": "string", "pattern": "^(?:[^./\\\\][^/\\\\]*|\\.[^./\\\\][^/\\\\]*|\\.\\.[^/\\\\]+)(?:/(?:[^./\\\\][^/\\\\]*|\\.[^./\\\\][^/\\\\]*|\\.\\.[^/\\\\]+))*$" },
+    "iri": {
+      "type": "string",
+      "format": "iri",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^(?:[^./\\\\][^/\\\\]*|\\.[^./\\\\][^/\\\\]*|\\.\\.[^/\\\\]+)(?:/(?:[^./\\\\][^/\\\\]*|\\.[^./\\\\][^/\\\\]*|\\.\\.[^/\\\\]+))*$"
+    },
     "graphEntity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "source"],
+      "required": [
+        "id",
+        "source"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/iri" },
-        "source": { "$ref": "#/$defs/path" }
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "source": {
+          "$ref": "#/$defs/path"
+        }
       }
     },
     "versionedGraphEntity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "version", "source"],
+      "required": [
+        "id",
+        "version",
+        "source"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/iri" },
-        "version": { "$ref": "#/$defs/version" },
-        "source": { "$ref": "#/$defs/path" }
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "source": {
+          "$ref": "#/$defs/path"
+        }
       }
     },
     "artifact": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "role", "mediaType", "digest"],
+      "required": [
+        "path",
+        "role",
+        "mediaType",
+        "digest"
+      ],
       "properties": {
-        "path": { "$ref": "#/$defs/path" },
-        "role": { "enum": ["document", "shapes", "references"] },
-        "mediaType": { "const": "text/turtle" },
-        "digest": { "$ref": "#/$defs/digest" }
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "role": {
+          "enum": [
+            "document",
+            "shapes",
+            "references"
+          ]
+        },
+        "mediaType": {
+          "const": "text/turtle"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "import": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "iri", "version", "digest", "policy"],
+      "required": [
+        "source",
+        "iri",
+        "version",
+        "digest",
+        "policy"
+      ],
       "properties": {
-        "source": { "$ref": "#/$defs/path" },
-        "iri": { "$ref": "#/$defs/iri" },
-        "version": { "$ref": "#/$defs/version" },
-        "digest": { "$ref": "#/$defs/digest" },
-        "policy": { "const": "reference-only" }
+        "source": {
+          "$ref": "#/$defs/path"
+        },
+        "iri": {
+          "$ref": "#/$defs/iri"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "policy": {
+          "const": "reference-only"
+        }
       }
     },
     "reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "id", "version", "digest", "source"],
+      "required": [
+        "kind",
+        "id",
+        "version",
+        "digest",
+        "source"
+      ],
       "properties": {
-        "kind": { "enum": ["indicator", "methodology"] },
-        "id": { "$ref": "#/$defs/iri" },
-        "version": { "$ref": "#/$defs/version" },
-        "digest": { "$ref": "#/$defs/digest" },
-        "source": { "$ref": "#/$defs/path" }
+        "kind": {
+          "enum": [
+            "indicator",
+            "methodology"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source": {
+          "$ref": "#/$defs/path"
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "digest",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "kind": {
+          "enum": [
+            "semantic",
+            "quantitative"
+          ]
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source": {
+          "$ref": "#/$defs/path"
+        }
       }
     },
     "vector": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "path", "digest", "expected"],
+      "required": [
+        "id",
+        "name",
+        "target",
+        "category",
+        "path",
+        "digest",
+        "expected"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/iri" },
-        "name": { "type": "string", "minLength": 1 },
-        "path": { "$ref": "#/$defs/path" },
-        "digest": { "$ref": "#/$defs/digest" },
-        "expected": { "enum": ["conforms", "non-conforms"] }
-      }
+        "id": {
+          "$ref": "#/$defs/iri"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "target": {
+          "$ref": "#/$defs/iri"
+        },
+        "category": {
+          "enum": [
+            "valid",
+            "invalid",
+            "boundary"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected": {
+          "enum": [
+            "conforms",
+            "non-conforms"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "valid"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "const": "conforms"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "invalid"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "const": "non-conforms"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

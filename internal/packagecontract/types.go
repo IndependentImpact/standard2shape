@@ -3,17 +3,30 @@ package packagecontract
 const ManifestVersionV01 = "0.1"
 
 type Manifest struct {
-	ManifestVersion    string               `json:"manifestVersion"`
-	ID                 string               `json:"id"`
-	Version            string               `json:"version"`
-	StandardRelease    VersionedGraphEntity `json:"standardRelease"`
-	DocumentRoots      []GraphEntity        `json:"documentRoots"`
-	CanonicalShapes    []GraphEntity        `json:"canonicalShapes"`
-	Artifacts          []SourceArtifact     `json:"artifacts"`
-	Imports            []ImportReference    `json:"imports"`
-	References         []ArtifactReference  `json:"references"`
-	ReasoningProfile   VersionedGraphEntity `json:"reasoningProfile"`
-	ConformanceVectors []ConformanceVector  `json:"conformanceVectors"`
+	ManifestVersion    string                   `json:"manifestVersion"`
+	ID                 string                   `json:"id"`
+	Version            string                   `json:"version"`
+	StandardRelease    VersionedGraphEntity     `json:"standardRelease"`
+	DocumentRoots      []GraphEntity            `json:"documentRoots"`
+	CanonicalShapes    []GraphEntity            `json:"canonicalShapes"`
+	Artifacts          []SourceArtifact         `json:"artifacts"`
+	Imports            []ImportReference        `json:"imports"`
+	References         []ArtifactReference      `json:"references"`
+	Requirements       []RequirementDeclaration `json:"requirements"`
+	ReasoningProfile   VersionedGraphEntity     `json:"reasoningProfile"`
+	ConformanceVectors []ConformanceVector      `json:"conformanceVectors"`
+}
+
+// RequirementDeclaration inventories one executable requirement of the
+// package: the methodology-owned identity assessments and conformance vectors
+// are bound to, its kind, the digest pinning its externally owned normative
+// definition, and the standard-owned source declaring the reference record.
+type RequirementDeclaration struct {
+	ID      string `json:"id"`
+	Version string `json:"version"`
+	Kind    string `json:"kind"`
+	Digest  string `json:"digest"`
+	Source  string `json:"source"`
 }
 
 type GraphEntity struct {
@@ -53,6 +66,8 @@ type ArtifactReference struct {
 type ConformanceVector struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
+	Target   string `json:"target"`
+	Category string `json:"category"`
 	Path     string `json:"path"`
 	Digest   string `json:"digest"`
 	Expected string `json:"expected"`

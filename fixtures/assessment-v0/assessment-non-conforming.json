@@ -1,0 +1,56 @@
+{
+  "assessmentVersion": "0.1",
+  "package": {
+    "id": "https://example.org/standards/demo/packages/0.1.0",
+    "version": "0.1.0",
+    "digest": "sha256:b6832f5a3a4eabcca4cad8e085aa82ff083e19aa7334827659e911fe92251c8b"
+  },
+  "reasoningProfile": {
+    "id": "https://example.org/standard/NoEntailmentProfile",
+    "version": "0.1.0"
+  },
+  "evaluator": {
+    "id": "https://standard2shape.dev/evaluators/local-tracer",
+    "version": "0.1.0"
+  },
+  "startedAt": "2026-08-11T08:05:00Z",
+  "completedAt": "2026-08-11T08:05:01Z",
+  "results": [
+    {
+      "check": "shacl",
+      "outcome": "non-conforms",
+      "violations": [
+        {
+          "requirement": "https://example.org/standard/ProjectTitleShape",
+          "severity": "violation",
+          "message": "a project requires exactly one title",
+          "focus": "https://example.org/standard/ProjectWithoutTitle",
+          "path": "https://example.org/standard/title",
+          "source": "data-invalid.ttl"
+        }
+      ],
+      "evidenceChecked": [
+        {
+          "path": "data-invalid.ttl",
+          "digest": "sha256:0ede0b49823df17f7d5d47f19e1265001b4059c0f9ae81cd2322f8a489e00df7"
+        }
+      ]
+    },
+    {
+      "check": "semantic-applicability",
+      "outcome": "indeterminate",
+      "requirement": {
+        "id": "https://example.org/standard/ProjectTitleRequirement",
+        "version": "1.0.0"
+      },
+      "message": "the evidence does not describe the project scope this requirement constrains",
+      "violations": [],
+      "evidenceChecked": [
+        {
+          "path": "data-invalid.ttl",
+          "digest": "sha256:0ede0b49823df17f7d5d47f19e1265001b4059c0f9ae81cd2322f8a489e00df7"
+        }
+      ]
+    }
+  ]
+}

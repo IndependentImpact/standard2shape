@@ -31,7 +31,7 @@ func TestOpenValidTracerPackage(t *testing.T) {
 	if len(pkg.Manifest.DocumentRoots) != 1 || len(pkg.Manifest.CanonicalShapes) != 2 {
 		t.Fatalf("roots=%#v shapes=%#v", pkg.Manifest.DocumentRoots, pkg.Manifest.CanonicalShapes)
 	}
-	if len(pkg.Manifest.Artifacts) != 3 || len(pkg.Manifest.References) != 2 || len(pkg.Manifest.ConformanceVectors) != 2 {
+	if len(pkg.Manifest.Artifacts) != 3 || len(pkg.Manifest.References) != 2 || len(pkg.Manifest.ConformanceVectors) != 3 {
 		t.Fatalf("artifacts=%d references=%d vectors=%d", len(pkg.Manifest.Artifacts), len(pkg.Manifest.References), len(pkg.Manifest.ConformanceVectors))
 	}
 	if pkg.StatementCount == 0 {
@@ -99,24 +99,31 @@ func TestManifestRequiresImportAndReferenceArrays(t *testing.T) {
 		t.Fatal(err)
 	}
 	delete(fields, "imports")
-	fields["references"] = json.RawMessage("null")
 	stripped, err := json.Marshal(fields)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	manifest, err := decodeManifest(stripped)
 	if err != nil {
 		t.Fatal(err)
 	}
 	diagnostics := validateManifest(manifest)
-	for _, location := range []string{"imports", "references"} {
-		found := slices.ContainsFunc(diagnostics, func(d Diagnostic) bool {
-			return d.Code == "manifest.field.required" && d.Location == location
-		})
-		if !found {
-			t.Fatalf("missing %s diagnostic %q in %#v", location, "manifest.field.required", diagnostics)
-		}
+	found := slices.ContainsFunc(diagnostics, func(d Diagnostic) bool {
+		return d.Code == "manifest.field.required" && d.Location == "imports"
+	})
+	if !found {
+		t.Fatalf("missing imports diagnostic %q in %#v", "manifest.field.required", diagnostics)
+	}
+
+	fields["references"] = json.RawMessage("null")
+	nullified, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = decodeManifest(nullified)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.field.null") {
+		t.Fatalf("expected explicit-null diagnostic, got %v", err)
 	}
 }
 
@@ -287,6 +294,294 @@ func TestInvalidPackageFixturesHaveStableDiagnostics(t *testing.T) {
 				t.Fatalf("diagnostic is not stable:\nfirst:  %v\nsecond: %v", err, repeated)
 			}
 		})
+	}
+}
+
+func TestVectorRequirementsMustBeDeclaredIdentities(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.ConformanceVectors[0].Target = "https://example.org/standard/UndeclaredRequirement"
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.vector.target_unknown") {
+		t.Fatalf("expected undeclared vector requirement diagnostic, got %v", err)
+	}
+}
+
+func TestVectorCategoriesMustMatchExpectations(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	for index, vector := range manifest.ConformanceVectors {
+		if vector.Category == "invalid" {
+			manifest.ConformanceVectors[index].Expected = "conforms"
+		}
+	}
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.vector.category_mismatch") {
+		t.Fatalf("an invalid-category vector expecting conforms must be rejected, got %v", err)
+	}
+}
+
+func TestPackagesWithoutRequirementsAreAccepted(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = bytes.Replace(references, []byte(";\n  s2s:hasRequirement ex:ProjectTitleRequirement ."), []byte("."), 1)
+	references = bytes.Replace(references, []byte("\nex:ProjectTitleRequirement a s2s:SemanticRequirement ;\n  s2s:requirementVersion \"1.0.0\" ;\n  s2s:requirementDigest \"sha256:5555555555555555555555555555555555555555555555555555555555555555\" .\n"), []byte(""), 1)
+	if bytes.Contains(references, []byte("ProjectTitleRequirement")) {
+		t.Fatal("requirement record not fully removed from fixture copy")
+	}
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Requirements = []RequirementDeclaration{}
+	for index := range manifest.ConformanceVectors {
+		manifest.ConformanceVectors[index].Target = manifest.CanonicalShapes[0].ID
+	}
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Open(root); err != nil {
+		t.Fatalf("a shapes-only package with shape-targeted vectors must be accepted: %v", err)
+	}
+}
+
+func TestRequirementsNeedMandatoryVectorCoverage(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.ConformanceVectors = manifest.ConformanceVectors[:2]
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.requirement.vectors_missing") {
+		t.Fatalf("expected mandatory vector-coverage diagnostic, got %v", err)
+	}
+}
+
+func TestRequirementDefinitionsAreVerifiedAgainstTheGraph(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Requirements[0].Version = "2.0.0"
+	manifest.Requirements[0].Kind = "quantitative"
+	manifest.Requirements[0].Digest = "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
+		t.Fatalf("asserted kind and version must be verified against the graph, got %v", err)
+	}
+}
+
+func TestRequirementsMustBeMethodologyOwned(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphaned := bytes.Replace(references, []byte(";\n  s2s:hasRequirement ex:ProjectTitleRequirement ."), []byte("."), 1)
+	if bytes.Equal(orphaned, references) {
+		t.Fatal("fixture ownership statement not found")
+	}
+	if err := os.WriteFile(referencesPath, orphaned, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", orphaned)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
+		t.Fatalf("a requirement without a methodology owner must be rejected, got %v", err)
+	}
+}
+
+func TestDualTypedRequirementsAreRejected(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/ProjectTitleRequirement> a <https://standard2shape.dev/vocab#QuantitativeRequirement> .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.invalid") {
+		t.Fatalf("a requirement typed both semantic and quantitative must be rejected, got %v", err)
+	}
+}
+
+func TestBareApplicabilityRequirementsMustBeInventoried(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/UntypedRequirement> a <https://standard2shape.dev/vocab#ApplicabilityRequirement> .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.undeclared") {
+		t.Fatalf("a bare applicability-requirement node must be inventoried, got %v", err)
+	}
+}
+
+func TestUntypedRequirementObjectsMustBeInventoried(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/DemoMethodologyV1> <https://standard2shape.dev/vocab#hasRequirement> <https://example.org/standard/UntypedMysteryRequirement> .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.undeclared") {
+		t.Fatalf("an untyped hasRequirement object must be inventoried, got %v", err)
+	}
+}
+
+func TestRequirementIdentitiesCannotCollideWithCanonicalIdentities(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	manifestPath := filepath.Join(root, "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Requirements[0].ID = manifest.CanonicalShapes[0].ID
+	updated, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(updated, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "manifest.requirement.conflict") {
+		t.Fatalf("a requirement identity colliding with a canonical shape must be rejected, got %v", err)
+	}
+}
+
+func TestGraphRequirementsMustBeInventoried(t *testing.T) {
+	root := copyFixture(t, filepath.Join("..", "..", "fixtures", "tracer"))
+	referencesPath := filepath.Join(root, "references.ttl")
+	references, err := os.ReadFile(referencesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	references = append(references, []byte("\n<https://example.org/standard/HiddenRequirement> a <https://standard2shape.dev/vocab#SemanticRequirement> ;\n  <https://standard2shape.dev/vocab#requirementVersion> \"1.0.0\" .\n")...)
+	if err := os.WriteFile(referencesPath, references, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updateArtifactDigest(t, root, "references.ttl", references)
+
+	_, err = Open(root)
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || !hasDiagnostic(contractErr.Diagnostics, "graph.requirement.undeclared") {
+		t.Fatalf("expected uninventoried requirement diagnostic, got %v", err)
 	}
 }
 
